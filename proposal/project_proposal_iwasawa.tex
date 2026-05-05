@@ -1,0 +1,153 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amsthm, amssymb}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{microtype}
+\sloppy
+
+\newtheorem*{theorem*}{Theorem}
+\newtheorem*{keylemma*}{Key lemma}
+
+\title{The Iwasawa Decomposition of $GL_n(\mathbb{R})$}
+\author{Jiho Lee \\ Math 157}
+\date{April 28, 2026}
+
+\begin{document}
+\maketitle
+
+\section*{Motivation}
+
+The Iwasawa decomposition expresses every invertible real $n \times n$
+matrix as a product of three matrices, each drawn from a distinguished
+subgroup. Lang treats it in Appendix~II of \emph{Linear Algebra} (3rd ed.,
+1987), titled ``Iwasawa Decomposition and Others.'' The appendix's stated
+purpose is to introduce the language of group theory through the running
+example of $SL_n$ (the group of $n \times n$ real matrices with
+determinant~$1$), which had not been used in the rest of the book; Lang
+chooses the Iwasawa decomposition as the vehicle, describing it
+explicitly as a way to ``express Theorem~2.1 of Chapter~V in the context
+of groups and subgroups.'' That theorem is the Gram--Schmidt
+orthonormalization theorem, so the Iwasawa decomposition is, for Lang,
+the group-theoretic restatement of Gram--Schmidt: the assertion that the
+product map $U \times A \times K \to SL_n$ is a bijection, where $U$ is
+the upper-unipotent subgroup, $A$ the positive diagonal subgroup, and
+$K$ the orthogonal subgroup. From there the appendix moves on to the
+broader content suggested by ``Others'': the actions of
+$SL_2(\mathbb{R})$ and $SL_2(\mathbb{C})$ on the hyperbolic upper
+half-plane and upper half-space, the conjugation action with the first
+rudiments of Lie algebras, and the complementary polar decomposition
+$G = KAK$. The Iwasawa decomposition itself is the matrix face of a
+more general phenomenon in Lie theory: any real semisimple Lie group
+$G$ admits a diffeomorphism $G \cong K \times A \times N$, where $K$
+is a maximal compact subgroup, $A$ a maximal split abelian subgroup,
+and $N$ a maximal unipotent subgroup. The formalization here works
+with the slightly larger group $GL_n(\mathbb{R})$ (no determinant
+constraint); the proof carries over from Lang's argument with no
+essential change.
+
+\section*{Statement and proof}
+
+Write $M_n$ for the type of $n \times n$ real matrices. A matrix is
+\emph{positive diagonal} if it is diagonal with strictly positive
+entries, and \emph{upper unipotent} if it is upper triangular with ones
+on the diagonal.
+
+\begin{theorem*}[Iwasawa decomposition for $GL_n(\mathbb{R})$]
+For every $g \in M_n$ with $\det g \neq 0$ there exist unique
+$k, a, u \in M_n$ such that $g = k \cdot a \cdot u$, where $k$ is
+orthogonal, $a$ is positive diagonal, and $u$ is upper unipotent. (Lang
+states the bijection in the form $g = uak$; the two orderings are
+equivalent by inversion since each of $U$, $A$, $K$ is closed under
+inverses.)
+\end{theorem*}
+
+\subsection*{Existence via Gram--Schmidt}
+
+Following Lang's Appendix~II, view column $i$ of $g$ as
+$g^{(i)} \in \mathbb{R}^n$ with $(g^{(i)})_j = g_{ji}$. Since
+$\det g \neq 0$, the columns are linearly independent. Apply
+Gram--Schmidt: produce vectors $\tilde{e}_i$, the components of
+$g^{(i)}$ orthogonal to the span of the earlier columns, and let
+$e_i = \tilde{e}_i / \|\tilde{e}_i\|$. Form $Q$ with $i$-th column
+$e_i$; orthonormality of $(e_i)$ is exactly $Q^T Q = I$, so $Q$ is
+orthogonal. Set $R = Q^T g$, equivalently
+$R_{ij} = \langle e_i, g^{(j)} \rangle$. Two facts about $R$ follow
+from Gram--Schmidt: (i)~for $j < i$, the $i$-th Gram--Schmidt vector
+is orthogonal to $g^{(j)}$ (which lies in the span of earlier
+columns), so $R_{ij} = 0$ and $R$ is upper triangular;
+(ii)~expanding $g^{(i)}$ as $\tilde{e}_i$ plus projections onto the
+earlier $\tilde{e}_k$ and pairing with $\tilde{e}_i$ collapses to
+$\langle \tilde{e}_i, g^{(i)} \rangle = \|\tilde{e}_i\|^2$, hence
+$R_{ii} = \|\tilde{e}_i\| > 0$. Now split $R = D \cdot U$ with $D$
+the diagonal of $R$ and $U = D^{-1} R$. Then $D$ is positive
+diagonal, and $U$ is upper unipotent
+($U_{ii} = R_{ii}^{-1} \cdot R_{ii} = 1$). Combining, $g = QR = Q(DU)$,
+so $k = Q$, $a = D$, $u = U$ is the required factorization.
+
+\subsection*{Uniqueness via a key lemma}
+
+Uniqueness rests on:
+
+\begin{keylemma*}
+If $M$ is orthogonal, upper triangular, and has positive diagonal, then
+$M = I$.
+\end{keylemma*}
+
+\begin{proof}
+Orthogonality gives $M^{-1} = M^T$. The inverse of an upper-triangular
+invertible matrix is upper triangular, so $M^T$ is upper triangular,
+equivalently $M$ is lower triangular. With both upper and lower
+triangular, $M$ is diagonal. From $M M^T = I$ each $M_{ii}^2 = 1$, and
+positivity selects $M_{ii} = 1$.
+\end{proof}
+
+To finish uniqueness, suppose $g = k_1 a_1 u_1 = k_2 a_2 u_2$ and set
+$M = k_2^T k_1$. Then $M$ is orthogonal (product of orthogonals), and
+rearranging gives $M = a_2 u_2 u_1^{-1} a_1^{-1}$, which is upper
+triangular with positive diagonal (the diagonal of a product of
+upper-triangular matrices is the product of diagonals; positivity
+follows from positivity of $a_1, a_2$ and unipotence of $u_1, u_2$).
+The lemma forces $M = I$, so $k_1 = k_2$. Cancelling gives
+$a_1 u_1 = a_2 u_2$, hence $a_1 = a_2(u_2 u_1^{-1})$; comparing
+diagonals forces $a_1 = a_2$ and the unipotent factor to be the
+identity, so $u_1 = u_2$.
+
+\section*{The formalization landscape in Mathlib}
+
+Mathlib provides each structural ingredient required by the proof but
+does not package the decomposition itself.
+\texttt{Mathlib.LinearAlgebra.UnitaryGroup} defines the orthogonal
+group on real matrices;
+\texttt{Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho} provides
+\texttt{gramSchmidt} and \texttt{gramSchmidtNormed} together with
+orthogonality, span, and nonvanishing lemmas; and
+\texttt{Mathlib.LinearAlgebra.Matrix.Block} provides the
+\texttt{BlockTriangular} predicate together with the result that the
+inverse of an upper-triangular invertible matrix is upper triangular.
+The closest existing matrix factorization in the library is the LDL
+decomposition in \texttt{Mathlib.Analysis.Matrix.LDL}, useful as a
+structural template, but neither the Iwasawa decomposition nor the
+closely related QR factorization (numerical linear algebra's name for
+the same data; see Trefethen--Bau) is packaged anywhere in Mathlib.
+The accompanying repository
+\url{https://github.com/CuteSurtr/Iwasawa_Decomposition} contains a
+complete Lean 4 / Mathlib formalization corresponding to the argument
+above; the full formal proof, with explicit references to every
+Mathlib lemma used, appears in the repository's \texttt{README.md}.
+
+\section*{References}
+
+\small
+\begin{enumerate}[leftmargin=*, labelsep=0.4em, itemsep=0pt, topsep=0pt]
+\item S. Lang. \emph{Linear Algebra}, 3rd edition. Springer, 1987.
+(Appendix~II, ``Iwasawa Decomposition and Others.'')
+\item L. N. Trefethen, D. Bau. \emph{Numerical Linear Algebra}. SIAM,
+1997. (Lectures 7--8 on QR.)
+\item J. Miao, K. Buzzard, A. Bentkamp.
+\texttt{Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho}.
+\item A. Bentkamp. \texttt{Mathlib.Analysis.Matrix.LDL}.
+\item The Mathlib community. \url{https://leanprover-community.github.io/}.
+\end{enumerate}
+
+\end{document}
