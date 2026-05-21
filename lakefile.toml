@@ -1,0 +1,11 @@
+name = "iwasawa_decomposition"
+version = "0.1.0"
+defaultTargets = ["iwasawa_decomposition"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
+[[lean_lib]]
+name = "iwasawa_decomposition"
+roots = ["Iwasawa"]
