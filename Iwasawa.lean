@@ -5,6 +5,29 @@ import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
+/-!
+# The Iwasawa Decomposition of GLₙ(ℝ)
+
+A Lean formalization of the Iwasawa decomposition for the real general
+linear group: every invertible `n × n` real matrix factors uniquely as
+`g = k * a * u`, where `k` is orthogonal, `a` is positive diagonal, and
+`u` is upper unipotent. The proof follows Lang, *Linear Algebra*
+(3rd ed., 1987, Appendix II).
+
+See `README.md` for the full mathematical exposition. Section numbers in
+the comments below refer to that document.
+
+## Main results
+
+* `orthogonal_upperTriangular_posDiag_eq_one` (README §3): an orthogonal,
+  upper triangular matrix with strictly positive diagonal is the identity.
+* `exists_iwasawa` (README §4): existence of the factorization, by
+  Gram-Schmidt on the columns of `g`.
+* `iwasawa_unique` (README §5): uniqueness of the factorization.
+* `iwasawaDecomposition` (README §2): combined existence and uniqueness,
+  packaged as a unique existence statement.
+-/
+
 namespace Iwasawa
 
 open Matrix
@@ -14,18 +37,35 @@ set_option linter.unusedSimpArgs false
 
 variable {n : ℕ}
 
+/-! ### §1. The three subgroups K, A, N
+
+The Iwasawa factorization splits `g ∈ GLₙ(ℝ)` into factors from three
+distinguished subgroups: the orthogonal group `K`, the positive diagonal
+group `A`, and the upper unipotent group `N`. We encode membership in
+each subgroup as a predicate on matrices.
+-/
+
+/-- `M` is upper triangular: every entry strictly below the diagonal is
+zero. Implemented via `Matrix.BlockTriangular` with the identity ordering
+on `Fin n`. -/
 def IsUpperTriangular (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
   Matrix.BlockTriangular M (id : Fin n → Fin n)
 
+/-- `M` is upper unipotent (`M ∈ N` in the README): upper triangular and
+every diagonal entry equals `1`. -/
 def IsUpperUnipotent (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
   IsUpperTriangular M ∧ ∀ i, M i i = 1
 
+/-- `M` is positive diagonal (`M ∈ A` in the README): off diagonal entries
+vanish and the diagonal entries are strictly positive. -/
 def IsPositiveDiagonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
   (∀ i j, i ≠ j → M i j = 0) ∧ ∀ i, 0 < M i i
 
+/-- `M` is orthogonal (`M ∈ K` in the README): `M * Mᵀ = I`. -/
 def IsOrthogonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
   M * Mᵀ = 1
 
+/-- The identity matrix is upper triangular. -/
 lemma IsUpperTriangular.one : IsUpperTriangular (1 : Matrix (Fin n) (Fin n) ℝ) := by
   intro i j hij
   simp only [Matrix.one_apply]
@@ -34,20 +74,29 @@ lemma IsUpperTriangular.one : IsUpperTriangular (1 : Matrix (Fin n) (Fin n) ℝ)
   subst h
   exact absurd hij (lt_irrefl _)
 
+/-- The identity matrix is upper unipotent. -/
 lemma IsUpperUnipotent.one : IsUpperUnipotent (1 : Matrix (Fin n) (Fin n) ℝ) :=
   ⟨IsUpperTriangular.one, fun _ => by simp⟩
 
+/-- The identity matrix is positive diagonal. -/
 lemma IsPositiveDiagonal.one : IsPositiveDiagonal (1 : Matrix (Fin n) (Fin n) ℝ) :=
   ⟨fun _ _ hij => by simp [hij], fun _ => by simp⟩
 
+/-- The identity matrix is orthogonal. -/
 lemma IsOrthogonal.one : IsOrthogonal (1 : Matrix (Fin n) (Fin n) ℝ) := by
   unfold IsOrthogonal; simp
 
+/-- The product of two upper triangular matrices is upper triangular.
+A direct application of `Matrix.BlockTriangular.mul`. -/
 lemma IsUpperTriangular.mul {M N : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsUpperTriangular M) (hN : IsUpperTriangular N) :
     IsUpperTriangular (M * N) :=
   Matrix.BlockTriangular.mul hM hN
 
+/-- The product of two positive diagonal matrices is positive diagonal:
+the off diagonal entries vanish because every summand carries a zero
+factor, and the diagonal entries multiply to give a product of two
+strictly positive reals. -/
 lemma IsPositiveDiagonal.mul {M N : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsPositiveDiagonal M) (hN : IsPositiveDiagonal N) :
     IsPositiveDiagonal (M * N) := by
@@ -69,6 +118,9 @@ lemma IsPositiveDiagonal.mul {M N : Matrix (Fin n) (Fin n) ℝ}
         rw [hM.1 i k (Ne.symm hk), zero_mul]
       · intro h; exact absurd (Finset.mem_univ i) h
 
+/-- The product of two upper unipotent matrices is upper unipotent. Upper
+triangularity comes from `IsUpperTriangular.mul`; the diagonal of the
+product at `(i, i)` collapses to `M i i * N i i = 1 * 1 = 1`. -/
 lemma IsUpperUnipotent.mul {M N : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsUpperUnipotent M) (hN : IsUpperUnipotent N) :
     IsUpperUnipotent (M * N) := by
@@ -86,18 +138,25 @@ lemma IsUpperUnipotent.mul {M N : Matrix (Fin n) (Fin n) ℝ}
         rw [hM.1 h_lt, zero_mul]
     · intro habs; exact absurd (Finset.mem_univ i) habs
 
+/-- The transpose of an orthogonal matrix is orthogonal. From `M Mᵀ = I`
+and the fact that left and right inverses coincide for square matrices,
+we get `Mᵀ M = I`, which is exactly `Mᵀ (Mᵀ)ᵀ = I`. -/
 lemma IsOrthogonal.transpose {M : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsOrthogonal M) : IsOrthogonal Mᵀ := by
   unfold IsOrthogonal at hM ⊢
   rw [Matrix.transpose_transpose]
   exact (mul_eq_one_comm.mp hM)
 
+/-- The determinant of an orthogonal matrix squares to `1`, since
+`(det M)² = det M * det Mᵀ = det (M * Mᵀ) = det I = 1`. -/
 lemma IsOrthogonal.det_sq {M : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsOrthogonal M) : (M.det) ^ 2 = 1 := by
   have h := congrArg Matrix.det hM
   rw [Matrix.det_mul, Matrix.det_transpose, Matrix.det_one] at h
   rw [sq]; exact h
 
+/-- An orthogonal matrix has nonzero determinant. In particular, every
+orthogonal matrix lies in `GLₙ(ℝ)`. -/
 lemma IsOrthogonal.det_ne_zero {M : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsOrthogonal M) : M.det ≠ 0 := by
   intro h
@@ -105,16 +164,31 @@ lemma IsOrthogonal.det_ne_zero {M : Matrix (Fin n) (Fin n) ℝ}
   rw [h] at h2
   norm_num at h2
 
+/-! ### The naive diagonal inverse `diagInv`
+
+`diagInv M` is the matrix that is diagonal and whose `(i, i)` entry is
+`(M i i)⁻¹`. This is *not* the matrix inverse `M⁻¹` in general, but it
+does coincide with `M⁻¹` whenever `M` is itself diagonal with nonzero
+diagonal entries. We use this construction below to build the upper
+unipotent factor `u = (diagInv (dMat g)) * (rMat g)`.
+-/
+
+/-- The naive diagonal inverse of a matrix `M`: the diagonal matrix whose
+`(i, i)` entry is `(M i i)⁻¹`. -/
 noncomputable def diagInv (M : Matrix (Fin n) (Fin n) ℝ) :
     Matrix (Fin n) (Fin n) ℝ :=
   fun i j => if i = j then (M i i)⁻¹ else 0
 
+/-- Diagonal entry of `diagInv M` at position `(i, i)`. -/
 @[simp] lemma diagInv_diag (M : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
     diagInv M i i = (M i i)⁻¹ := by simp [diagInv]
 
+/-- Off diagonal entries of `diagInv M` are zero. -/
 lemma diagInv_off_diag {M : Matrix (Fin n) (Fin n) ℝ} {i j : Fin n} (h : i ≠ j) :
     diagInv M i j = 0 := by simp [diagInv, h]
 
+/-- For positive diagonal `M`, `diagInv M` is a left inverse of `M`:
+`diagInv M * M = I`. -/
 lemma IsPositiveDiagonal.diagInv_mul_self {M : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsPositiveDiagonal M) : diagInv M * M = 1 := by
   ext i j
@@ -128,6 +202,8 @@ lemma IsPositiveDiagonal.diagInv_mul_self {M : Matrix (Fin n) (Fin n) ℝ}
     rw [Matrix.one_apply_eq, inv_mul_cancel₀ (ne_of_gt (hM.2 i))]
   · rw [Matrix.one_apply_ne hij, hM.1 i j hij, mul_zero]
 
+/-- For positive diagonal `M`, `diagInv M` is a right inverse of `M`:
+`M * diagInv M = I`. -/
 lemma IsPositiveDiagonal.self_mul_diagInv {M : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsPositiveDiagonal M) : M * diagInv M = 1 := by
   ext i j
@@ -141,11 +217,26 @@ lemma IsPositiveDiagonal.self_mul_diagInv {M : Matrix (Fin n) (Fin n) ℝ}
     rw [Matrix.one_apply_eq, mul_inv_cancel₀ (ne_of_gt (hM.2 i))]
   · rw [Matrix.one_apply_ne hij, hM.1 i j hij, zero_mul]
 
+/-- `diagInv` preserves positive diagonality: if `M` is positive diagonal
+then so is `diagInv M`, because the reciprocal of a positive real is
+again positive. -/
 lemma IsPositiveDiagonal.isPositiveDiagonal_diagInv {M : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsPositiveDiagonal M) : IsPositiveDiagonal (diagInv M) := by
   refine ⟨fun _ _ hij => diagInv_off_diag hij, fun i => ?_⟩
   rw [diagInv_diag]; exact inv_pos.mpr (hM.2 i)
 
+/-! ### §2. The `IwasawaFactorization` structure
+
+The data of an Iwasawa factorization of a matrix `g`: a triple
+`(k, a, u)` with `k` orthogonal, `a` positive diagonal, and `u` upper
+unipotent, together with a proof that `g = k * a * u`. The main theorems
+below show that this structure is inhabited and that any two inhabitants
+are equal whenever `det g ≠ 0`.
+-/
+
+/-- An Iwasawa factorization of a matrix `g`: a triple `(k, a, u)` such
+that `k` is orthogonal, `a` is positive diagonal, `u` is upper unipotent,
+and `g = k * a * u`. -/
 structure IwasawaFactorization (g : Matrix (Fin n) (Fin n) ℝ) where
 
   k : Matrix (Fin n) (Fin n) ℝ
@@ -163,6 +254,8 @@ namespace IwasawaFactorization
 
 variable {g : Matrix (Fin n) (Fin n) ℝ}
 
+/-- The trivial Iwasawa factorization of the identity matrix: all three
+factors `k`, `a`, `u` are equal to the identity. -/
 def one : IwasawaFactorization (1 : Matrix (Fin n) (Fin n) ℝ) where
   k := 1
   a := 1
@@ -177,22 +270,42 @@ end IwasawaFactorization
 open scoped InnerProductSpace
 open InnerProductSpace
 
+/-! ### §4.1 and §4.2. Gram-Schmidt and the orthogonal factor `Q`
+
+The existence argument starts by running Gram-Schmidt on the columns of
+`g`. The orthonormal family produced is then assembled into the
+orthogonal matrix `Q = qMat g`, and the change of basis matrix
+`R = rMat g = Qᵀ * g` is shown to be upper triangular with strictly
+positive diagonal.
+-/
+
+/-- Column `i` of the matrix `g`, viewed as a vector in
+`EuclideanSpace ℝ (Fin n)` (so the standard `ℓ²` inner product applies). -/
 noncomputable def gCol (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
     EuclideanSpace ℝ (Fin n) :=
   WithLp.toLp 2 (fun j => g j i)
 
+/-- The Gram-Schmidt normalized column of `g` at index `i`. In the
+notation of README §4.1, this is the vector `eᵢ`. -/
 noncomputable def gsCol (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
     EuclideanSpace ℝ (Fin n) :=
   gramSchmidtNormed ℝ (gCol g) i
 
+/-- The orthogonal matrix `Q` of README §4.2: column `i` of `Q` is the
+Gram-Schmidt normalized vector `gsCol g i = eᵢ`. -/
 noncomputable def qMat (g : Matrix (Fin n) (Fin n) ℝ) :
     Matrix (Fin n) (Fin n) ℝ :=
   fun j i => gsCol g i j
 
+/-- The matrix `R` of README §4.3, with entries
+`R_{ij} = ⟨eᵢ, g^{(j)}⟩` (the inner product of Gram-Schmidt column `i`
+with column `j` of `g`). -/
 noncomputable def rMat (g : Matrix (Fin n) (Fin n) ℝ) :
     Matrix (Fin n) (Fin n) ℝ :=
   fun i j => @inner ℝ _ _ (gsCol g i) (gCol g j)
 
+/-- The inner product on `EuclideanSpace ℝ (Fin n)` unfolds to the
+coordinatewise sum `⟨x, y⟩ = ∑ k, x k * y k`. -/
 lemma inner_eq_sum (x y : EuclideanSpace ℝ (Fin n)) :
     @inner ℝ _ _ x y = ∑ k, x k * y k := by
   rw [PiLp.inner_apply]
@@ -200,6 +313,8 @@ lemma inner_eq_sum (x y : EuclideanSpace ℝ (Fin n)) :
   show y.ofLp k * (starRingEnd ℝ) (x.ofLp k) = x.ofLp k * y.ofLp k
   rw [RCLike.conj_to_real]; ring
 
+/-- If `det g ≠ 0`, the columns of `g`, viewed in `EuclideanSpace ℝ (Fin n)`,
+are linearly independent. This is the input to Gram-Schmidt. -/
 lemma gCol_linearIndependent {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     LinearIndependent ℝ (gCol g) := by
   have h := Matrix.linearIndependent_cols_of_det_ne_zero hg
@@ -209,10 +324,15 @@ lemma gCol_linearIndependent {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0)
     h.map' e.toLinearMap (LinearEquiv.ker e)
   convert h2 using 1
 
+/-- If `det g ≠ 0`, the Gram-Schmidt normalized columns of `g` form an
+orthonormal family. -/
 lemma gsCol_orthonormal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     Orthonormal ℝ (gsCol g) :=
   gramSchmidtNormed_orthonormal (gCol_linearIndependent hg)
 
+/-- `Q = qMat g` is orthogonal whenever `det g ≠ 0` (README §4.2). The
+proof first establishes `Qᵀ Q = I` using orthonormality of the columns,
+then flips to `Q Qᵀ = I` via `mul_eq_one_comm`. -/
 lemma qMat_orthogonal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     IsOrthogonal (qMat g) := by
   have hortho := gsCol_orthonormal hg
@@ -238,6 +358,8 @@ lemma qMat_orthogonal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
   unfold IsOrthogonal
   exact mul_eq_one_comm.mp hTQ
 
+/-- The definitional identity `R = Qᵀ * g`: each entry of `Qᵀ * g`
+unfolds to the inner product `⟨eᵢ, g^{(j)}⟩`. -/
 lemma rMat_eq_QT_mul_g (g : Matrix (Fin n) (Fin n) ℝ) :
     rMat g = (qMat g)ᵀ * g := by
   ext i j
@@ -248,6 +370,9 @@ lemma rMat_eq_QT_mul_g (g : Matrix (Fin n) (Fin n) ℝ) :
     intros k _
     simp [qMat, Matrix.transpose_apply, gCol]
 
+/-- The recovery identity `g = Q * R`. Combined with the splitting
+`R = a * u` below, this produces the existence factorization
+`g = Q * a * u`. -/
 lemma g_eq_Q_mul_R {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     g = qMat g * rMat g := by
   rw [rMat_eq_QT_mul_g, ← Matrix.mul_assoc]
@@ -255,6 +380,10 @@ lemma g_eq_Q_mul_R {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
   rw [(qMat_orthogonal hg : qMat g * (qMat g)ᵀ = 1)]
   rw [Matrix.one_mul]
 
+/-- Below the diagonal, `R = rMat g` vanishes: `R i j = 0` whenever
+`j < i`. The vector `eᵢ` is orthogonal to all `eₖ` with `k < i` by
+Gram-Schmidt, and `g^{(j)}` lies in the span of `e₁, …, e_j`; for
+`j < i` this forces the inner product to vanish. -/
 lemma rMat_lowerTriangular_zero (g : Matrix (Fin n) (Fin n) ℝ)
     {i j : Fin n} (hij : j < i) : rMat g i j = 0 := by
 
@@ -266,6 +395,10 @@ lemma rMat_lowerTriangular_zero (g : Matrix (Fin n) (Fin n) ℝ)
   rw [h0]
   simp
 
+/-- The diagonal entry `R_{ii}` equals the norm
+`‖gramSchmidt ℝ (gCol g) i‖` of the *unnormalized* Gram-Schmidt vector
+`tilde eᵢ`. This is the explicit formula derived in README §4.3
+(positivity step). -/
 lemma rMat_diag (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
     rMat g i i = ‖gramSchmidt ℝ (gCol g) i‖ := by
   unfold rMat gsCol gramSchmidtNormed
@@ -298,34 +431,54 @@ lemma rMat_diag (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
   · simp [hzero]
   · field_simp
 
+/-- For `det g ≠ 0`, the diagonal entries of `R` are strictly positive.
+Each unnormalized Gram-Schmidt vector `tilde eᵢ` is nonzero by linear
+independence of the columns, so its norm is strictly positive. -/
 lemma rMat_diag_pos {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) (i : Fin n) :
     0 < rMat g i i := by
   rw [rMat_diag g]
   rw [norm_pos_iff]
   exact gramSchmidt_ne_zero i (gCol_linearIndependent hg)
 
+/-- `R = rMat g` is upper triangular: every entry strictly below the
+diagonal is zero. -/
 lemma rMat_isUpperTriangular (g : Matrix (Fin n) (Fin n) ℝ) :
     IsUpperTriangular (rMat g) := by
   intros i j hij
 
   exact rMat_lowerTriangular_zero g hij
 
+/-! ### §4.4. Splitting `R = a * u`
+
+We split the upper triangular matrix `R = rMat g` into its diagonal part
+`a = dMat g` and an upper unipotent residual `u = uMat g`, so that
+`R = a * u`.
+-/
+
+/-- The diagonal matrix `a = dMat g` of README §4.4: same diagonal as
+`R`, zero elsewhere. -/
 noncomputable def dMat (g : Matrix (Fin n) (Fin n) ℝ) : Matrix (Fin n) (Fin n) ℝ :=
   fun i j => if i = j then rMat g i i else 0
 
+/-- The upper unipotent factor `u = uMat g = a⁻¹ * R` of README §4.4. -/
 noncomputable def uMat (g : Matrix (Fin n) (Fin n) ℝ) : Matrix (Fin n) (Fin n) ℝ :=
   diagInv (dMat g) * rMat g
 
+/-- Diagonal entry of `dMat g`: equals `R_{ii}`. -/
 lemma dMat_diag (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
     dMat g i i = rMat g i i := by simp [dMat]
 
+/-- Off diagonal entries of `dMat g` are zero. -/
 lemma dMat_off_diag {g : Matrix (Fin n) (Fin n) ℝ} {i j : Fin n} (h : i ≠ j) :
     dMat g i j = 0 := by simp [dMat, h]
 
+/-- For `det g ≠ 0`, the diagonal matrix `dMat g` is positive diagonal,
+since the diagonal of `R` is strictly positive. -/
 lemma dMat_isPositiveDiagonal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     IsPositiveDiagonal (dMat g) :=
   ⟨fun _ _ hij => dMat_off_diag hij, fun i => by rw [dMat_diag]; exact rMat_diag_pos hg i⟩
 
+/-- The splitting equation `a * u = R`: `dMat g * uMat g = rMat g`. -/
 lemma dMat_mul_uMat {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     dMat g * uMat g = rMat g := by
   unfold uMat
@@ -333,6 +486,8 @@ lemma dMat_mul_uMat {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
   rw [(dMat_isPositiveDiagonal hg).self_mul_diagInv]
   rw [Matrix.one_mul]
 
+/-- `uMat g` is upper triangular, being the product of a diagonal matrix
+(hence upper triangular) and the upper triangular matrix `R`. -/
 lemma uMat_isUpperTriangular (g : Matrix (Fin n) (Fin n) ℝ) :
     IsUpperTriangular (uMat g) := by
   unfold uMat
@@ -345,6 +500,9 @@ lemma uMat_isUpperTriangular (g : Matrix (Fin n) (Fin n) ℝ) :
   intro h
   exact absurd (h ▸ hij : id i < id i) (lt_irrefl _)
 
+/-- The diagonal entries of `uMat g` are all `1`: the diagonal of
+`diagInv a * R` at position `(i, i)` evaluates to
+`(R_{ii})⁻¹ * R_{ii} = 1`. -/
 lemma uMat_diag {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) (i : Fin n) :
     uMat g i i = 1 := by
   unfold uMat
@@ -358,10 +516,16 @@ lemma uMat_diag {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) (i : Fin n) 
   · intros habs
     exact absurd (Finset.mem_univ i) habs
 
+/-- `uMat g` is upper unipotent: upper triangular with unit diagonal. -/
 lemma uMat_isUpperUnipotent {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     IsUpperUnipotent (uMat g) :=
   ⟨uMat_isUpperTriangular g, uMat_diag hg⟩
 
+/-! ### §4.5. Assembling the existence factorization -/
+
+/-- The explicit Iwasawa factorization of an invertible `g`, bundling
+`(k, a, u) = (qMat g, dMat g, uMat g)` together with the proofs that each
+factor has the required form and that `g = k * a * u`. -/
 noncomputable def iwasawa {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     IwasawaFactorization g where
   k := qMat g
@@ -375,10 +539,22 @@ noncomputable def iwasawa {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     rw [dMat_mul_uMat hg]
     exact g_eq_Q_mul_R hg
 
+/-- **Existence (README §4).** Every matrix `g` with `det g ≠ 0` admits
+at least one Iwasawa factorization. -/
 theorem exists_iwasawa (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
     Nonempty (IwasawaFactorization g) :=
   ⟨iwasawa hg⟩
 
+/-! ### Determinant and inverse properties
+
+A small toolkit of additional facts about the three subgroups, used in
+the uniqueness argument: determinants of `A` and `N`, inverses of `K`,
+`A`, `N`, and the embedding of `A` into the upper triangular matrices.
+-/
+
+/-- The determinant of an upper unipotent matrix is `1`: it is the
+product of the diagonal entries of an upper triangular matrix, and every
+diagonal entry equals `1`. -/
 lemma IsUpperUnipotent.det {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipotent U) :
     U.det = 1 := by
   rw [Matrix.det_of_upperTriangular hU.1]
@@ -386,11 +562,15 @@ lemma IsUpperUnipotent.det {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipote
   intros i _
   exact hU.2 i
 
+/-- An upper unipotent matrix has nonzero determinant, hence is
+invertible. -/
 lemma IsUpperUnipotent.det_ne_zero {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipotent U) :
     U.det ≠ 0 := by
   rw [hU.det]
   exact one_ne_zero
 
+/-- A positive diagonal matrix is upper triangular: its only nonzero
+entries lie on the diagonal. -/
 lemma IsPositiveDiagonal.isUpperTriangular {D : Matrix (Fin n) (Fin n) ℝ}
     (hD : IsPositiveDiagonal D) : IsUpperTriangular D := by
   intros i j hij
@@ -399,11 +579,17 @@ lemma IsPositiveDiagonal.isUpperTriangular {D : Matrix (Fin n) (Fin n) ℝ}
   intro h
   exact absurd (h ▸ hij : id j < id j) (lt_irrefl _)
 
+/-- The determinant of a positive diagonal matrix is strictly positive,
+being a product of strictly positive reals. -/
 lemma IsPositiveDiagonal.det_pos {D : Matrix (Fin n) (Fin n) ℝ} (hD : IsPositiveDiagonal D) :
     0 < D.det := by
   rw [Matrix.det_of_upperTriangular hD.isUpperTriangular]
   exact Finset.prod_pos (fun i _ => hD.2 i)
 
+/-- The matrix inverse of an upper unipotent matrix is upper unipotent.
+Upper triangularity is `blockTriangular_inv_of_blockTriangular`; the
+diagonal entries of the inverse are forced to be `1` by examining the
+diagonal of `U * U⁻¹ = I`. -/
 lemma IsUpperUnipotent.inv {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipotent U) :
     IsUpperUnipotent U⁻¹ := by
   letI : Invertible U := U.invertibleOfIsUnitDet (Ne.isUnit hU.det_ne_zero)
@@ -432,21 +618,37 @@ lemma IsUpperUnipotent.inv {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipote
   rw [hcontract, hU.2 i, one_mul] at hUUinv_ii
   exact hUUinv_ii
 
+/-- The matrix inverse of a positive diagonal matrix coincides with the
+naive `diagInv`. -/
 lemma IsPositiveDiagonal.matInv_eq_diagInv {D : Matrix (Fin n) (Fin n) ℝ}
     (hD : IsPositiveDiagonal D) : D⁻¹ = diagInv D := by
   apply Matrix.inv_eq_left_inv
   exact hD.diagInv_mul_self
 
+/-- The matrix inverse of a positive diagonal matrix is positive
+diagonal. -/
 lemma IsPositiveDiagonal.matInv {D : Matrix (Fin n) (Fin n) ℝ}
     (hD : IsPositiveDiagonal D) : IsPositiveDiagonal D⁻¹ := by
   rw [hD.matInv_eq_diagInv]
   exact hD.isPositiveDiagonal_diagInv
 
+/-- The matrix inverse of an orthogonal matrix `Q` equals its transpose:
+`Q⁻¹ = Qᵀ`. This is just a restatement of `Qᵀ Q = I`. -/
 lemma IsOrthogonal.matInv_eq_transpose {Q : Matrix (Fin n) (Fin n) ℝ}
     (hQ : IsOrthogonal Q) : Q⁻¹ = Qᵀ := by
   apply Matrix.inv_eq_left_inv
   exact mul_eq_one_comm.mpr hQ
 
+/-! ### §3. The key lemma -/
+
+/-- **Key lemma (README §3).** A matrix that is simultaneously orthogonal,
+upper triangular, and has strictly positive diagonal must be the identity.
+
+Sketch: from `M Mᵀ = I` we have `M⁻¹ = Mᵀ`. The inverse of an upper
+triangular matrix is upper triangular, so `Mᵀ` is upper triangular, i.e.
+`M` is lower triangular. Combined with the hypothesis that `M` is upper
+triangular, `M` is diagonal. Then `M_{ii}² = 1` together with `M_{ii} > 0`
+forces `M_{ii} = 1`, so `M = I`. -/
 lemma orthogonal_upperTriangular_posDiag_eq_one
     {M : Matrix (Fin n) (Fin n) ℝ}
     (hOrth : IsOrthogonal M)
@@ -504,6 +706,12 @@ lemma orthogonal_upperTriangular_posDiag_eq_one
     rw [this, Matrix.one_apply_eq]
   · rw [hDiag hij, Matrix.one_apply_ne hij]
 
+/-! ### Auxiliary uniqueness lemmas -/
+
+/-- A matrix that is simultaneously upper unipotent and positive diagonal
+is the identity. The upper unipotent condition forces every diagonal
+entry to be `1`, while the positive diagonal condition forces every off
+diagonal entry to be `0`. -/
 lemma upperUnipotent_inter_positiveDiagonal_eq_one
     {M : Matrix (Fin n) (Fin n) ℝ}
     (hUU : IsUpperUnipotent M) (hPD : IsPositiveDiagonal M) :
@@ -513,6 +721,10 @@ lemma upperUnipotent_inter_positiveDiagonal_eq_one
   · rw [hUU.2 i, Matrix.one_apply_eq]
   · rw [hPD.1 i j hij, Matrix.one_apply_ne hij]
 
+/-- If `a * u = a'` where `a, a'` are positive diagonal and `u` is upper
+unipotent, then `a = a'` and `u = 1`. This is the structural step in
+README §5.5: comparing entries of `a * u` against the diagonal `a'` pins
+down both factors. -/
 lemma posDiag_mul_upperUnip_eq_diag_iff
     {a a' u : Matrix (Fin n) (Fin n) ℝ}
     (ha : IsPositiveDiagonal a) (ha' : IsPositiveDiagonal a')
@@ -563,6 +775,21 @@ lemma posDiag_mul_upperUnip_eq_diag_iff
   ·
     rw [hu.1 hgt, Matrix.one_apply_ne (ne_of_gt hgt)]
 
+/-! ### §5. Uniqueness of the factorization -/
+
+/-- **Uniqueness (README §5).** Two Iwasawa factorizations of the same
+matrix have equal components.
+
+Proof outline (matching README §5.1 to §5.5):
+
+* §5.1: introduce the auxiliary matrix `M := k₂ᵀ * k₁`.
+* §5.2: show `M` is orthogonal.
+* §5.3: show `M` is upper triangular with strictly positive diagonal,
+  using the rewrite `M = a₂ * u₂ * u₁⁻¹ * a₁⁻¹` and closure of the
+  upper triangular property under multiplication.
+* §5.4: apply the key lemma to deduce `M = I`, hence `k₁ = k₂`.
+* §5.5: cancel `k₁ = k₂` and apply `posDiag_mul_upperUnip_eq_diag_iff`
+  to conclude `a₁ = a₂` and `u₁ = u₂`. -/
 theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
     (F G : IwasawaFactorization g) :
     F.k = G.k ∧ F.a = G.a ∧ F.u = G.u := by
@@ -702,6 +929,11 @@ theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
     exact this.symm
   exact ⟨hk_eq, ha_eq.symm, hu_eq⟩
 
+/-! ### §2 (revisited). The main decomposition theorem -/
+
+/-- **Iwasawa decomposition (README §2).** For every matrix `g` with
+`det g ≠ 0`, there is a *unique* triple `(k, a, u) ∈ K × A × N` such that
+`g = k * a * u`. -/
 theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
     ∃! (kau : Matrix (Fin n) (Fin n) ℝ × Matrix (Fin n) (Fin n) ℝ ×
               Matrix (Fin n) (Fin n) ℝ),
