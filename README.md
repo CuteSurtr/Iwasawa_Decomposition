@@ -79,6 +79,23 @@ the $j$-th coordinate of $g^{(i)}$ is the matrix entry $g_{ji}$:
 
 $$\bigl( g^{(i)} \bigr)_{j} = g_{ji}.$$
 
+**In Lean.** The three subgroups are predicates on matrices (`Mᵀ` is the
+transpose; `BlockTriangular ... id` means "zero below the diagonal").
+
+```lean
+def IsUpperTriangular (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
+  Matrix.BlockTriangular M (id : Fin n → Fin n)
+
+def IsUpperUnipotent (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
+  IsUpperTriangular M ∧ ∀ i, M i i = 1
+
+def IsPositiveDiagonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
+  (∀ i j, i ≠ j → M i j = 0) ∧ ∀ i, 0 < M i i
+
+def IsOrthogonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
+  M * Mᵀ = 1
+```
+
 ---
 
 ## 2. Statement of the theorem
@@ -102,6 +119,26 @@ The proof is given in three parts:
   factorization equation, then they are equal componentwise; the
   proof reduces to the key lemma applied to the matrix
   $k_2^T k_1$.
+
+**In Lean.** The data of a factorization is bundled in a structure, and the
+theorem is the unique existence statement `∃!`.
+
+```lean
+structure IwasawaFactorization (g : Matrix (Fin n) (Fin n) ℝ) where
+  k : Matrix (Fin n) (Fin n) ℝ
+  a : Matrix (Fin n) (Fin n) ℝ
+  u : Matrix (Fin n) (Fin n) ℝ
+  k_orthogonal : IsOrthogonal k
+  a_positiveDiagonal : IsPositiveDiagonal a
+  u_upperUnipotent : IsUpperUnipotent u
+  factorization : g = k * a * u
+
+theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
+    ∃! (kau : Matrix (Fin n) (Fin n) ℝ × Matrix (Fin n) (Fin n) ℝ ×
+              Matrix (Fin n) (Fin n) ℝ),
+      IsOrthogonal kau.1 ∧ IsPositiveDiagonal kau.2.1 ∧ IsUpperUnipotent kau.2.2 ∧
+      g = kau.1 * kau.2.1 * kau.2.2
+```
 
 ---
 
@@ -144,6 +181,17 @@ $$
 Since $M_{ii} > 0$ by hypothesis, this equation forces $M_{ii} = 1$
 for every index $i$. Therefore $M$ is the identity matrix.
 $\blacksquare$
+
+**In Lean.** The key lemma is a single implication.
+
+```lean
+lemma orthogonal_upperTriangular_posDiag_eq_one
+    {M : Matrix (Fin n) (Fin n) ℝ}
+    (hOrth : IsOrthogonal M)
+    (hUT : IsUpperTriangular M)
+    (hPos : ∀ i, 0 < M i i) :
+    M = 1
+```
 
 ---
 
@@ -217,6 +265,23 @@ $$
 \end{cases}
 $$
 
+**In Lean.** A column is read into `EuclideanSpace` so the `ℓ²` inner product
+is available; `gsCol` is its Gram-Schmidt normalization, orthonormal once
+`det g ≠ 0`.
+
+```lean
+noncomputable def gCol (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
+    EuclideanSpace ℝ (Fin n) :=
+  WithLp.toLp 2 (fun j => g j i)
+
+noncomputable def gsCol (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
+    EuclideanSpace ℝ (Fin n) :=
+  gramSchmidtNormed ℝ (gCol g) i
+
+lemma gsCol_orthonormal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
+    Orthonormal ℝ (gsCol g)
+```
+
 ### 4.2 The orthogonal matrix $Q$
 
 Let $Q \in M_n(\mathbb{R})$ be the matrix whose $i$-th column is the
@@ -233,6 +298,18 @@ For square matrices, the relations $Q^T Q = I$ and $Q Q^T = I$ are
 equivalent: a square matrix that has a left inverse necessarily has
 that same left inverse on the right. Therefore $Q Q^T = I$ as well,
 so $Q \in K$.
+
+**In Lean.** `qMat` has the Gram-Schmidt vectors as its columns, and is
+orthogonal.
+
+```lean
+noncomputable def qMat (g : Matrix (Fin n) (Fin n) ℝ) :
+    Matrix (Fin n) (Fin n) ℝ :=
+  fun j i => gsCol g i j
+
+lemma qMat_orthogonal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
+    IsOrthogonal (qMat g)
+```
 
 ### 4.3 The matrix $R = Q^T g$
 
@@ -350,6 +427,21 @@ hence
 
 $$R_{ii} > 0.$$
 
+**In Lean.** `rMat` has entries `⟨eᵢ, g⁽ʲ⁾⟩`, so `rMat g = (qMat g)ᵀ * g`; it
+is upper triangular with strictly positive diagonal.
+
+```lean
+noncomputable def rMat (g : Matrix (Fin n) (Fin n) ℝ) :
+    Matrix (Fin n) (Fin n) ℝ :=
+  fun i j => @inner ℝ _ _ (gsCol g i) (gCol g j)
+
+lemma rMat_isUpperTriangular (g : Matrix (Fin n) (Fin n) ℝ) :
+    IsUpperTriangular (rMat g)
+
+lemma rMat_diag_pos {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) (i : Fin n) :
+    0 < rMat g i i
+```
+
 ### 4.4 Splitting $R = a \cdot u$
 
 Let $a \in M_n(\mathbb{R})$ be the diagonal matrix whose
@@ -383,6 +475,20 @@ written $R$ as a product
 
 $$R = a \cdot u, \qquad a \in A, \qquad u \in N.$$
 
+**In Lean.** `dMat` is the diagonal part of `R`, `uMat = a⁻¹ R` the unipotent
+remainder, and they multiply back to `R`.
+
+```lean
+noncomputable def dMat (g : Matrix (Fin n) (Fin n) ℝ) : Matrix (Fin n) (Fin n) ℝ :=
+  fun i j => if i = j then rMat g i i else 0
+
+noncomputable def uMat (g : Matrix (Fin n) (Fin n) ℝ) : Matrix (Fin n) (Fin n) ℝ :=
+  diagInv (dMat g) * rMat g
+
+lemma dMat_mul_uMat {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
+    dMat g * uMat g = rMat g
+```
+
 ### 4.5 Assembling the factorization
 
 Set $k = Q$. Then $k \in K$, $a \in A$, and $u \in N$.
@@ -404,6 +510,28 @@ $$g = Q \cdot R = Q \cdot (a \cdot u) = k \cdot a \cdot u.$$
 
 This is the required factorization. Existence is proved.
 $\blacksquare$
+
+**In Lean.** The three factors are packaged into a concrete
+`IwasawaFactorization`, which witnesses existence.
+
+```lean
+noncomputable def iwasawa {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
+    IwasawaFactorization g where
+  k := qMat g
+  a := dMat g
+  u := uMat g
+  k_orthogonal := qMat_orthogonal hg
+  a_positiveDiagonal := dMat_isPositiveDiagonal hg
+  u_upperUnipotent := uMat_isUpperUnipotent hg
+  factorization := by
+    rw [Matrix.mul_assoc]
+    rw [dMat_mul_uMat hg]
+    exact g_eq_Q_mul_R hg
+
+theorem exists_iwasawa (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
+    Nonempty (IwasawaFactorization g) :=
+  ⟨iwasawa hg⟩
+```
 
 ---
 
@@ -606,6 +734,34 @@ $$a_1 = a_2, \qquad u_1 = u_2.$$
 
 This completes the uniqueness proof. $\blacksquare$
 
+**In Lean.** Uniqueness is one theorem on the bundled structure. Its proof is
+the §5.1 to §5.5 skeleton below (`...` elides routine algebra), closing with
+the shape comparison lemma.
+
+```lean
+theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
+    (F G : IwasawaFactorization g) :
+    F.k = G.k ∧ F.a = G.a ∧ F.u = G.u := by
+  ...
+  set M := k₂ᵀ * k₁                                    -- §5.1
+  have hMorth : IsOrthogonal M := ...                  -- §5.2
+  have hM_UT : IsUpperTriangular M := ...              -- §5.3
+  have hM_pos : ∀ i, 0 < M i i := ...                  -- §5.3
+  have hM_one : M = 1 :=                                -- §5.4
+    orthogonal_upperTriangular_posDiag_eq_one hMorth hM_UT hM_pos
+  have hk_eq : k₁ = k₂ := ...                           -- §5.4
+  obtain ⟨ha_eq, hU_one⟩ :=                             -- §5.5
+    posDiag_mul_upperUnip_eq_diag_iff ha₂ ha₁ hU_unip ha₂U_eq_a₁
+  ...
+
+-- the shape comparison lemma used at §5.5
+lemma posDiag_mul_upperUnip_eq_diag_iff
+    {a a' u : Matrix (Fin n) (Fin n) ℝ}
+    (ha : IsPositiveDiagonal a) (ha' : IsPositiveDiagonal a')
+    (hu : IsUpperUnipotent u)
+    (h : a * u = a') : a = a' ∧ u = 1
+```
+
 ---
 
 ## 6. Conclusion
@@ -628,6 +784,18 @@ upper triangular, and has strictly positive diagonal is the identity.
 
 This is the **Iwasawa decomposition** for $GL_n(\mathbb{R})$.
 
+**In Lean.** The conclusion combines the two halves: the explicit triple from
+§4 witnesses existence, and `iwasawa_unique` from §5 forces any other triple to
+match (skeleton of the proof of `iwasawaDecomposition`).
+
+```lean
+refine ⟨(qMat g, dMat g, uMat g), ?_, ?_⟩          -- the explicit triple
+· exact ⟨qMat_orthogonal hg, dMat_isPositiveDiagonal hg,
+         uMat_isUpperUnipotent hg, ...⟩             -- it is a valid factorization
+· -- any (k', a', u') with the same properties equals it, via `iwasawa_unique`
+  ...
+```
+
 ---
 
 ## Formalization in Lean
@@ -637,7 +805,7 @@ companion file [`Iwasawa.lean`](Iwasawa.lean). It compiles with no
 `sorry`, and the main theorems depend only on Lean's three standard
 foundational axioms (`propext`, `Classical.choice`, `Quot.sound`).
 
-Each section of this document corresponds to declarations in that file:
+Each section above shows the corresponding Lean inline; the table collects the main declarations for quick reference:
 
 | Document | Lean declaration(s) |
 | --- | --- |
@@ -647,129 +815,6 @@ Each section of this document corresponds to declarations in that file:
 | §4 Existence | `qMat`, `dMat`, `uMat`, `exists_iwasawa` |
 | §5 Uniqueness | `iwasawa_unique` |
 | §6 Conclusion | `iwasawaDecomposition` |
-
-### The declarations in code
-
-The listings below show the central definitions and the statements of
-the main results, lightly trimmed (proof bodies and field docstrings
-live in the source file). They line up with the sections above.
-
-**§1, the three subgroups.** Each is a predicate on matrices, matching
-the set definitions in Section 1 one for one.
-
-```lean
-def IsUpperTriangular (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
-  Matrix.BlockTriangular M (id : Fin n → Fin n)
-
-def IsUpperUnipotent (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
-  IsUpperTriangular M ∧ ∀ i, M i i = 1
-
-def IsPositiveDiagonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
-  (∀ i j, i ≠ j → M i j = 0) ∧ ∀ i, 0 < M i i
-
-def IsOrthogonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
-  M * Mᵀ = 1
-```
-
-**§2, the factorization data and the theorem.** An
-`IwasawaFactorization g` bundles the three factors together with their
-defining properties and the equation `g = k * a * u`.
-
-```lean
-structure IwasawaFactorization (g : Matrix (Fin n) (Fin n) ℝ) where
-  k : Matrix (Fin n) (Fin n) ℝ
-  a : Matrix (Fin n) (Fin n) ℝ
-  u : Matrix (Fin n) (Fin n) ℝ
-  k_orthogonal : IsOrthogonal k
-  a_positiveDiagonal : IsPositiveDiagonal a
-  u_upperUnipotent : IsUpperUnipotent u
-  factorization : g = k * a * u
-```
-
-The main theorem says that for invertible `g` this triple exists and is
-unique, using Lean's unique existence quantifier `∃!`.
-
-```lean
-theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
-    ∃! (kau : Matrix (Fin n) (Fin n) ℝ × Matrix (Fin n) (Fin n) ℝ ×
-              Matrix (Fin n) (Fin n) ℝ),
-      IsOrthogonal kau.1 ∧ IsPositiveDiagonal kau.2.1 ∧ IsUpperUnipotent kau.2.2 ∧
-      g = kau.1 * kau.2.1 * kau.2.2
-```
-
-**§3, the key lemma.** The single fact that makes the factorization
-rigid.
-
-```lean
-lemma orthogonal_upperTriangular_posDiag_eq_one
-    {M : Matrix (Fin n) (Fin n) ℝ}
-    (hOrth : IsOrthogonal M)
-    (hUT : IsUpperTriangular M)
-    (hPos : ∀ i, 0 < M i i) :
-    M = 1
-```
-
-**§4, the existence construction.** A column of `g` is read into
-`EuclideanSpace`; the orthogonal factor `qMat` has the Gram-Schmidt
-vectors as its columns; and `rMat` records the inner products
-`⟨eᵢ, g⁽ʲ⁾⟩`, so that `rMat g = (qMat g)ᵀ * g`.
-
-```lean
-noncomputable def gCol (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
-    EuclideanSpace ℝ (Fin n) :=
-  WithLp.toLp 2 (fun j => g j i)
-
-noncomputable def qMat (g : Matrix (Fin n) (Fin n) ℝ) :
-    Matrix (Fin n) (Fin n) ℝ :=
-  fun j i => gsCol g i j
-
-noncomputable def rMat (g : Matrix (Fin n) (Fin n) ℝ) :
-    Matrix (Fin n) (Fin n) ℝ :=
-  fun i j => @inner ℝ _ _ (gsCol g i) (gCol g j)
-```
-
-Splitting `R` into its diagonal `dMat` and the unipotent remainder
-`uMat` yields the other two factors.
-
-```lean
-noncomputable def dMat (g : Matrix (Fin n) (Fin n) ℝ) : Matrix (Fin n) (Fin n) ℝ :=
-  fun i j => if i = j then rMat g i i else 0
-
-noncomputable def uMat (g : Matrix (Fin n) (Fin n) ℝ) : Matrix (Fin n) (Fin n) ℝ :=
-  diagInv (dMat g) * rMat g
-```
-
-These assemble into a concrete `IwasawaFactorization`. The `where` block
-is exactly the checklist from Section 4.5: each field discharges one
-requirement, and `exists_iwasawa` simply asserts the result is inhabited.
-
-```lean
-noncomputable def iwasawa {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
-    IwasawaFactorization g where
-  k := qMat g
-  a := dMat g
-  u := uMat g
-  k_orthogonal := qMat_orthogonal hg
-  a_positiveDiagonal := dMat_isPositiveDiagonal hg
-  u_upperUnipotent := uMat_isUpperUnipotent hg
-  factorization := by
-    rw [Matrix.mul_assoc]
-    rw [dMat_mul_uMat hg]
-    exact g_eq_Q_mul_R hg
-
-theorem exists_iwasawa (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
-    Nonempty (IwasawaFactorization g) :=
-  ⟨iwasawa hg⟩
-```
-
-**§5, uniqueness.** Stated on the bundled structure: any two
-factorizations of the same `g` have equal components.
-
-```lean
-theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
-    (F G : IwasawaFactorization g) :
-    F.k = G.k ∧ F.a = G.a ∧ F.u = G.u
-```
 
 ### Building and checking
 
