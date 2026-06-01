@@ -661,6 +661,69 @@ lake build           # elaborate and check Iwasawa.lean
 A successful `lake build` is a complete machine verification of every
 claim made above.
 
+### Notes on the formalization
+
+The mathematics here is classical (it is Lang's proof), so the work of
+this project is the formalization. A few choices and obstacles are worth
+recording, since none of them appears in the textbook.
+
+**Subgroups as predicates, not bundled structures.** Membership in $K$,
+$A$, $N$ is expressed by plain predicates (`IsOrthogonal`,
+`IsPositiveDiagonal`, `IsUpperUnipotent`) rather than Mathlib `Subgroup`
+objects. This keeps the statements elementary and avoids carrying group
+structure the proof never uses; the price is that the closure facts
+(identity, products, inverses) are proved by hand.
+
+**Columns live in `EuclideanSpace`.** Gram-Schmidt in Mathlib needs an
+inner product space, and the bare type `Fin n → ℝ` does not carry the
+$\ell^2$ inner product. Each column is therefore mapped into
+`EuclideanSpace ℝ (Fin n)` (which is `PiLp 2`) by `gCol`, and linear
+independence of the columns has to be transported across the
+`WithLp.linearEquiv` (in `gCol_linearIndependent`). This step is
+invisible on paper but unavoidable in Lean.
+
+**A computable diagonal inverse.** Mathlib's `M⁻¹` is defined through the
+adjugate and is awkward to compute with. Rather than fight it, the file
+defines `diagInv M`, the diagonal matrix of reciprocals, proves it is a
+genuine two sided inverse for positive diagonal matrices, and only later
+identifies it with `M⁻¹` (`matInv_eq_diagInv`). The existence factor is
+then the clean expression `uMat g = diagInv (dMat g) * rMat g`.
+
+**Definitions are total, so degenerate cases must be dispatched.** The
+normalized column `gsCol` divides by the norm of the unnormalized
+Gram-Schmidt vector, so the proof that `rMat g i i` equals that norm
+(`rMat_diag`) still has to handle the zero vector case, even though
+linear independence later rules it out. The case cannot be skipped: the
+definitional equation has to hold before `det g ≠ 0` is ever assumed.
+
+**Upper triangularity via `BlockTriangular`.** `IsUpperTriangular` is
+defined as `Matrix.BlockTriangular M id`, which buys the closure and
+inverse lemmas (`Matrix.BlockTriangular.mul`,
+`blockTriangular_inv_of_blockTriangular`) directly from Mathlib, at the
+cost of a slightly indirect encoding that surfaces as the `id i < id i`
+contradictions in a few proofs.
+
+**Left inverse equals right inverse.** For square matrices a one sided
+inverse is automatically two sided (`mul_eq_one_comm`). This small fact
+is used repeatedly: to turn `Qᵀ Q = I` into `Q Qᵀ = I`, to obtain
+`M⁻¹ = Mᵀ` in the key lemma, and in `IsOrthogonal.transpose`.
+
+**Steps the paper asserts and Lean has to prove.** Several one line
+claims in the informal argument expand into real work. "Since
+`det g ≠ 0` the columns are independent" becomes `gCol_linearIndependent`;
+"the diagonal entry of a product of upper triangular matrices is the
+product of the diagonal entries" becomes the explicit `hdiag1`, `hdiag2`,
+`hdiag3` peeling inside `iwasawa_unique`; and "the product sum collapses
+to a single term" is the recurring `Finset.sum_eq_single` pattern.
+
+The load bearing Mathlib results are the Gram-Schmidt API
+(`gramSchmidtNormed_orthonormal`, `gramSchmidt_def'`,
+`gramSchmidt_orthogonal`, `gramSchmidt_inv_triangular`,
+`gramSchmidt_ne_zero`), `Matrix.linearIndependent_cols_of_det_ne_zero`,
+the block triangular lemmas above together with
+`Matrix.det_of_upperTriangular`, and `mul_eq_one_comm` with
+`Matrix.inv_eq_left_inv`.
+
 ---
 
 ## Reference
