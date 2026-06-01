@@ -17,7 +17,7 @@ The exposition is organized into six sections:
 1. Notation and the three subgroups involved.
 2. The statement of the theorem.
 3. The key lemma on which the uniqueness argument turns.
-4. The existence proof, by Gram–Schmidt orthonormalization of the
+4. The existence proof, by Gram-Schmidt orthonormalization of the
    columns of the matrix.
 5. The uniqueness proof, by reduction to the key lemma.
 6. A short conclusion summarizing the result.
@@ -145,7 +145,7 @@ The proof is given in three parts:
   must be the identity.
 - **Section 4 (Existence).** Given $g$ with $\det g \neq 0$, an
   explicit triple $(k, a, u) \in K \times A \times N$ satisfying
-  $g = k \cdot a \cdot u$ is constructed by applying Gram–Schmidt
+  $g = k \cdot a \cdot u$ is constructed by applying Gram-Schmidt
   orthonormalization to the columns of $g$.
 - **Section 5 (Uniqueness).** If two triples both satisfy the
   factorization equation, then they are equal componentwise; the
@@ -283,8 +283,8 @@ lemma orthogonal_upperTriangular_posDiag_eq_one
       rw [hDiag (Ne.symm hk.2), zero_mul]
     have hcontract : ∑ k, M i k * M i k = M i i * M i i := by
       rw [show (Finset.univ : Finset (Fin n)) = {i} ∪ (Finset.univ \ {i}) by
-        ext x; simp [or_iff_not_imp_left]]
-      rw [Finset.sum_union (by simp [Finset.disjoint_sdiff])]
+        ext x; simp]
+      rw [Finset.sum_union (by simp)]
       rw [Finset.sum_singleton, Finset.sum_eq_zero honly, add_zero]
     rw [hcontract] at hsum
     -- `(M i i)² = 1` with `M i i > 0` forces `M i i = 1`.
@@ -305,7 +305,7 @@ $(k, a, u) \in K \times A \times N$ satisfying $g = k \cdot a \cdot u$.
 
 The construction proceeds in five steps:
 
-- 4.1: Apply Gram–Schmidt to the columns of $g$ to obtain an
+- 4.1: Apply Gram-Schmidt to the columns of $g$ to obtain an
   orthonormal family.
 - 4.2: Assemble the orthogonal matrix $Q$ from the orthonormal
   columns.
@@ -328,7 +328,7 @@ flowchart LR
     G --> GS --> Q --> R --> AU --> OUT
 ```
 
-### 4.1 Gram–Schmidt on the columns of $g$
+### 4.1 Gram-Schmidt on the columns of $g$
 
 Because $\det g \neq 0$, the columns
 
@@ -336,7 +336,7 @@ $$g^{(1)}, \quad g^{(2)}, \quad \dots, \quad g^{(n)}$$
 
 form a linearly independent family in $\mathbb{R}^n$.
 
-Apply the Gram–Schmidt orthonormalization procedure to this family.
+Apply the Gram-Schmidt orthonormalization procedure to this family.
 Define recursively, for $i = 1, 2, \dots, n$,
 
 $$\tilde{e}_i = g^{(i)} - \sum_{k=1}^{i-1} \langle g^{(i)}, e_k \rangle e_k,$$
@@ -353,7 +353,7 @@ for some $i$, then $g^{(i)}$ would lie in the span of
 $g^{(1)}, \dots, g^{(i-1)}$, contradicting linear independence.
 Hence each $e_i$ is well-defined.
 
-By the standard properties of Gram–Schmidt, the resulting family
+By the standard properties of Gram-Schmidt, the resulting family
 
 $$(e_1, \quad e_2, \quad \dots, \quad e_n)$$
 
@@ -505,7 +505,7 @@ This proves that $R$ is upper triangular.
 
 #### Positivity of the diagonal of $R$
 
-By the construction of Gram–Schmidt, the vector $\tilde{e}_i$ is
+By the construction of Gram-Schmidt, the vector $\tilde{e}_i$ is
 orthogonal to all earlier orthonormalized vectors:
 
 $$\langle \tilde{e}_i, e_k \rangle = 0 \quad \text{for } k < i.$$
@@ -1189,7 +1189,7 @@ theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
   exact ⟨hk_eq, ha_eq.symm, hu_eq⟩
 ```
 
-Determinant and inverse toolkit, plus the diagonal-meets-unipotent fact (statements):
+Determinant and inverse toolkit, plus the fact that a matrix that is both diagonal and upper unipotent equals the identity (statements):
 
 ```lean
 lemma IsUpperUnipotent.det {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipotent U) :
@@ -1233,10 +1233,10 @@ $(k, a, u) \in K \times A \times N$ such that
 
 $$g = k \cdot a \cdot u.$$
 
-The orthogonal factor $k$ is obtained by applying Gram–Schmidt
+The orthogonal factor $k$ is obtained by applying Gram-Schmidt
 orthonormalization to the columns of $g$ and assembling the result
 into a matrix; the positive diagonal factor $a$ records the norms of
-the Gram–Schmidt vectors; and the upper unipotent factor $u$ records
+the Gram-Schmidt vectors; and the upper unipotent factor $u$ records
 the coefficients that express each column of $g$ in terms of the
 preceding orthonormalized columns. Uniqueness follows from the
 observation that the only matrix that is simultaneously orthogonal,

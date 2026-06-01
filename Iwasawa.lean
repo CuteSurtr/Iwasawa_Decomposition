@@ -24,16 +24,13 @@ the comments below refer to that document.
 * `exists_iwasawa` (README §4): existence of the factorization, by
   Gram-Schmidt on the columns of `g`.
 * `iwasawa_unique` (README §5): uniqueness of the factorization.
-* `iwasawaDecomposition` (README §2): combined existence and uniqueness,
+* `iwasawaDecomposition` (README §6, stated in §2): combined existence and uniqueness,
   packaged as a unique existence statement.
 -/
 
 namespace Iwasawa
 
 open Matrix
-
-set_option linter.unusedSectionVars false
-set_option linter.unusedSimpArgs false
 
 variable {n : ℕ}
 
@@ -652,8 +649,8 @@ lemma IsUpperUnipotent.inv {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipote
   -- So the sum collapses to the lone diagonal term `U i i * U⁻¹ i i`.
   have hcontract : ∑ k, U i k * U⁻¹ k i = U i i * U⁻¹ i i := by
     rw [show (Finset.univ : Finset (Fin n)) = {i} ∪ (Finset.univ \ {i}) by
-      ext x; simp [or_iff_not_imp_left]]
-    rw [Finset.sum_union (by simp [Finset.disjoint_sdiff])]
+      ext x; simp]
+    rw [Finset.sum_union (by simp)]
     rw [Finset.sum_singleton, Finset.sum_eq_zero honly, add_zero]
   -- Since `U i i = 1`, the identity `U i i * U⁻¹ i i = 1` forces `U⁻¹ i i = 1`.
   rw [hcontract, hU.2 i, one_mul] at hUUinv_ii
@@ -737,8 +734,8 @@ lemma orthogonal_upperTriangular_posDiag_eq_one
       rw [hDiag (Ne.symm hk.2), zero_mul]
     have hcontract : ∑ k, M i k * M i k = M i i * M i i := by
       rw [show (Finset.univ : Finset (Fin n)) = {i} ∪ (Finset.univ \ {i}) by
-        ext x; simp [or_iff_not_imp_left]]
-      rw [Finset.sum_union (by simp [Finset.disjoint_sdiff])]
+        ext x; simp]
+      rw [Finset.sum_union (by simp)]
       rw [Finset.sum_singleton, Finset.sum_eq_zero honly, add_zero]
     rw [hcontract] at hsum
     -- `(M i i)² = 1` with `M i i > 0` forces `M i i = 1`.
@@ -986,9 +983,9 @@ theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
     exact this.symm
   exact ⟨hk_eq, ha_eq.symm, hu_eq⟩
 
-/-! ### §2 (revisited). The main decomposition theorem -/
+/-! ### §6. The main decomposition theorem -/
 
-/-- **Iwasawa decomposition (README §2).** For every matrix `g` with
+/-- **Iwasawa decomposition (README §6).** For every matrix `g` with
 `det g ≠ 0`, there is a *unique* triple `(k, a, u) ∈ K × A × N` such that
 `g = k * a * u`. -/
 theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
