@@ -79,8 +79,7 @@ the $j$-th coordinate of $g^{(i)}$ is the matrix entry $g_{ji}$:
 
 $$\bigl( g^{(i)} \bigr)_{j} = g_{ji}.$$
 
-**In Lean.** The three subgroups are predicates on matrices (`Mᵀ` is the
-transpose; `BlockTriangular ... id` means "zero below the diagonal").
+**In Lean.** The three subgroups are predicates on matrices (`Mᵀ` is the transpose; `BlockTriangular ... id` means "zero below the diagonal").
 
 ```lean
 def IsUpperTriangular (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
@@ -94,6 +93,39 @@ def IsPositiveDiagonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
 
 def IsOrthogonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
   M * Mᵀ = 1
+```
+
+Each subgroup contains the identity and is closed under products; for `K` we also need the transpose and determinant facts (statements):
+
+```lean
+lemma IsUpperTriangular.one : IsUpperTriangular (1 : Matrix (Fin n) (Fin n) ℝ)
+
+lemma IsUpperUnipotent.one : IsUpperUnipotent (1 : Matrix (Fin n) (Fin n) ℝ)
+
+lemma IsPositiveDiagonal.one : IsPositiveDiagonal (1 : Matrix (Fin n) (Fin n) ℝ)
+
+lemma IsOrthogonal.one : IsOrthogonal (1 : Matrix (Fin n) (Fin n) ℝ)
+
+lemma IsUpperTriangular.mul {M N : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsUpperTriangular M) (hN : IsUpperTriangular N) :
+    IsUpperTriangular (M * N)
+
+lemma IsPositiveDiagonal.mul {M N : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsPositiveDiagonal M) (hN : IsPositiveDiagonal N) :
+    IsPositiveDiagonal (M * N)
+
+lemma IsUpperUnipotent.mul {M N : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsUpperUnipotent M) (hN : IsUpperUnipotent N) :
+    IsUpperUnipotent (M * N)
+
+lemma IsOrthogonal.transpose {M : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsOrthogonal M) : IsOrthogonal Mᵀ
+
+lemma IsOrthogonal.det_sq {M : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsOrthogonal M) : (M.det) ^ 2 = 1
+
+lemma IsOrthogonal.det_ne_zero {M : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsOrthogonal M) : M.det ≠ 0
 ```
 
 ---
@@ -120,19 +152,38 @@ The proof is given in three parts:
   proof reduces to the key lemma applied to the matrix
   $k_2^T k_1$.
 
-**In Lean.** The data of a factorization is bundled in a structure, and the
-theorem is the unique existence statement `∃!`.
+**In Lean.** The data of a factorization is bundled in a structure (`one` is the trivial factorization of the identity); the theorem is the unique existence statement `∃!`, proved in §6.
 
 ```lean
 structure IwasawaFactorization (g : Matrix (Fin n) (Fin n) ℝ) where
+  /-- The orthogonal factor, `k ∈ K`. -/
   k : Matrix (Fin n) (Fin n) ℝ
+  /-- The positive diagonal factor, `a ∈ A`. -/
   a : Matrix (Fin n) (Fin n) ℝ
+  /-- The upper unipotent factor, `u ∈ N`. -/
   u : Matrix (Fin n) (Fin n) ℝ
+  /-- `k` is orthogonal. -/
   k_orthogonal : IsOrthogonal k
+  /-- `a` is positive diagonal. -/
   a_positiveDiagonal : IsPositiveDiagonal a
+  /-- `u` is upper unipotent. -/
   u_upperUnipotent : IsUpperUnipotent u
+  /-- The three factors multiply back to `g`. -/
   factorization : g = k * a * u
 
+def one : IwasawaFactorization (1 : Matrix (Fin n) (Fin n) ℝ) where
+  k := 1
+  a := 1
+  u := 1
+  k_orthogonal := IsOrthogonal.one
+  a_positiveDiagonal := IsPositiveDiagonal.one
+  u_upperUnipotent := IsUpperUnipotent.one
+  factorization := by simp
+```
+
+The theorem statement (its proof appears in §6):
+
+```lean
 theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
     ∃! (kau : Matrix (Fin n) (Fin n) ℝ × Matrix (Fin n) (Fin n) ℝ ×
               Matrix (Fin n) (Fin n) ℝ),
@@ -182,7 +233,7 @@ Since $M_{ii} > 0$ by hypothesis, this equation forces $M_{ii} = 1$
 for every index $i$. Therefore $M$ is the identity matrix.
 $\blacksquare$
 
-**In Lean.** The key lemma is a single implication.
+**In Lean.** The key lemma, with its full proof.
 
 ```lean
 lemma orthogonal_upperTriangular_posDiag_eq_one
@@ -190,7 +241,58 @@ lemma orthogonal_upperTriangular_posDiag_eq_one
     (hOrth : IsOrthogonal M)
     (hUT : IsUpperTriangular M)
     (hPos : ∀ i, 0 < M i i) :
-    M = 1
+    M = 1 := by
+
+  -- `M` is invertible (orthogonal ⇒ nonzero determinant), with `M⁻¹ = Mᵀ`.
+  have hdet : M.det ≠ 0 := hOrth.det_ne_zero
+  letI : Invertible M := M.invertibleOfIsUnitDet (Ne.isUnit hdet)
+  have hMinv : M⁻¹ = Mᵀ := by
+    apply Matrix.inv_eq_left_inv
+    exact mul_eq_one_comm.mpr hOrth
+  -- The inverse of an upper triangular matrix is upper triangular, so `Mᵀ` is
+  -- upper triangular too; equivalently `M` is *lower* triangular.
+  have hMinv_UT : IsUpperTriangular M⁻¹ := blockTriangular_inv_of_blockTriangular hUT
+  have hMt_UT : IsUpperTriangular Mᵀ := hMinv ▸ hMinv_UT
+  have hM_LT : ∀ ⦃i j⦄, i < j → M i j = 0 := by
+    intros i j hij
+    have : Mᵀ j i = 0 := hMt_UT hij
+    simpa using this
+  -- Upper triangular together with lower triangular ⇒ `M` is diagonal.
+  have hDiag : ∀ ⦃i j⦄, i ≠ j → M i j = 0 := by
+    intros i j hij
+    rcases lt_or_gt_of_ne hij with h | h
+    · exact hM_LT h
+    · exact hUT h
+  -- Prove `M = 1` entrywise.
+  ext i j
+  rcases eq_or_ne i j with rfl | hij
+  · -- Diagonal: the `(i, i)` entry of `M Mᵀ = I` says `∑ₖ (M i k)² = 1`.
+    have hii : (M * Mᵀ) i i = 1 := by rw [hOrth]; simp
+    rw [Matrix.mul_apply] at hii
+    have hsum : ∑ k, M i k * M i k = 1 := by
+      have hh : ∑ k, M i k * Mᵀ k i = ∑ k, M i k * M i k := by
+        apply Finset.sum_congr rfl
+        intros k _
+        rfl
+      rw [hh] at hii
+      exact hii
+    -- `M` is diagonal, so the sum collapses to the single term `M i i * M i i`.
+    have honly : ∀ k ∈ (Finset.univ : Finset (Fin n)) \ {i}, M i k * M i k = 0 := by
+      intros k hk
+      rw [Finset.mem_sdiff, Finset.mem_singleton] at hk
+      rw [hDiag (Ne.symm hk.2), zero_mul]
+    have hcontract : ∑ k, M i k * M i k = M i i * M i i := by
+      rw [show (Finset.univ : Finset (Fin n)) = {i} ∪ (Finset.univ \ {i}) by
+        ext x; simp [or_iff_not_imp_left]]
+      rw [Finset.sum_union (by simp [Finset.disjoint_sdiff])]
+      rw [Finset.sum_singleton, Finset.sum_eq_zero honly, add_zero]
+    rw [hcontract] at hsum
+    -- `(M i i)² = 1` with `M i i > 0` forces `M i i = 1`.
+    have hMi := hPos i
+    have : M i i = 1 := by nlinarith
+    rw [this, Matrix.one_apply_eq]
+  · -- Off the diagonal both `M i j` and `(1) i j` are `0`.
+    rw [hDiag hij, Matrix.one_apply_ne hij]
 ```
 
 ---
@@ -265,9 +367,7 @@ $$
 \end{cases}
 $$
 
-**In Lean.** A column is read into `EuclideanSpace` so the `ℓ²` inner product
-is available; `gsCol` is its Gram-Schmidt normalization, orthonormal once
-`det g ≠ 0`.
+**In Lean.** A column is read into `EuclideanSpace` so the `ℓ²` inner product is available; `gsCol` is its Gram-Schmidt normalization.
 
 ```lean
 noncomputable def gCol (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
@@ -277,6 +377,16 @@ noncomputable def gCol (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
 noncomputable def gsCol (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
     EuclideanSpace ℝ (Fin n) :=
   gramSchmidtNormed ℝ (gCol g) i
+```
+
+Supporting facts (statements): the inner product as a sum, independence of the columns, and orthonormality of the normalized family.
+
+```lean
+lemma inner_eq_sum (x y : EuclideanSpace ℝ (Fin n)) :
+    @inner ℝ _ _ x y = ∑ k, x k * y k
+
+lemma gCol_linearIndependent {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
+    LinearIndependent ℝ (gCol g)
 
 lemma gsCol_orthonormal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
     Orthonormal ℝ (gsCol g)
@@ -299,8 +409,7 @@ equivalent: a square matrix that has a left inverse necessarily has
 that same left inverse on the right. Therefore $Q Q^T = I$ as well,
 so $Q \in K$.
 
-**In Lean.** `qMat` has the Gram-Schmidt vectors as its columns, and is
-orthogonal.
+**In Lean.** `qMat` has the Gram-Schmidt vectors as columns; the full proof that it is orthogonal.
 
 ```lean
 noncomputable def qMat (g : Matrix (Fin n) (Fin n) ℝ) :
@@ -308,7 +417,34 @@ noncomputable def qMat (g : Matrix (Fin n) (Fin n) ℝ) :
   fun j i => gsCol g i j
 
 lemma qMat_orthogonal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
-    IsOrthogonal (qMat g)
+    IsOrthogonal (qMat g) := by
+  have hortho := gsCol_orthonormal hg
+  -- First establish `Qᵀ Q = I`: its `(i, j)` entry is `⟨eᵢ, eⱼ⟩`, which is `1`
+  -- on the diagonal and `0` off it, by orthonormality of the columns.
+  have hTQ : (qMat g)ᵀ * qMat g = 1 := by
+    ext i j
+    rw [Matrix.mul_apply]
+    -- Identify the matrix-product entry with the coordinate sum for `⟨eᵢ, eⱼ⟩`.
+    have hsum : ∑ k, (qMat g)ᵀ i k * qMat g k j = ∑ k, gsCol g i k * gsCol g j k := by
+      apply Finset.sum_congr rfl
+      intros k _
+      simp [qMat, Matrix.transpose_apply]
+    rw [hsum]
+    have hinner : @inner ℝ _ _ (gsCol g i) (gsCol g j) = ∑ k, gsCol g i k * gsCol g j k :=
+      inner_eq_sum _ _
+    rw [← hinner]
+    rcases eq_or_ne i j with rfl | hne
+    · -- Diagonal: `⟨eᵢ, eᵢ⟩ = ‖eᵢ‖ * ‖eᵢ‖ = 1`.
+      rw [Matrix.one_apply_eq]
+      have hii : ‖gsCol g i‖ = 1 := hortho.1 i
+      rw [real_inner_self_eq_norm_mul_norm, hii, mul_one]
+    · -- Off-diagonal: distinct orthonormal vectors are orthogonal.
+      rw [Matrix.one_apply_ne hne]
+      exact hortho.2 hne
+  -- For a square matrix a left inverse is also a right inverse, so `Qᵀ Q = I`
+  -- upgrades to `Q Qᵀ = I`, i.e. `Q` is orthogonal.
+  unfold IsOrthogonal
+  exact mul_eq_one_comm.mp hTQ
 ```
 
 ### 4.3 The matrix $R = Q^T g$
@@ -427,19 +563,74 @@ hence
 
 $$R_{ii} > 0.$$
 
-**In Lean.** `rMat` has entries `⟨eᵢ, g⁽ʲ⁾⟩`, so `rMat g = (qMat g)ᵀ * g`; it
-is upper triangular with strictly positive diagonal.
+**In Lean.** `rMat` has entries `⟨eᵢ, g⁽ʲ⁾⟩`; below the diagonal it vanishes, and the diagonal entry equals the norm of the unnormalized Gram-Schmidt vector (so it is strictly positive).
 
 ```lean
 noncomputable def rMat (g : Matrix (Fin n) (Fin n) ℝ) :
     Matrix (Fin n) (Fin n) ℝ :=
   fun i j => @inner ℝ _ _ (gsCol g i) (gCol g j)
 
-lemma rMat_isUpperTriangular (g : Matrix (Fin n) (Fin n) ℝ) :
-    IsUpperTriangular (rMat g)
+lemma rMat_lowerTriangular_zero (g : Matrix (Fin n) (Fin n) ℝ)
+    {i j : Fin n} (hij : j < i) : rMat g i j = 0 := by
+  -- `R i j = ⟨eᵢ, g⁽ʲ⁾⟩`; peel off the normalization scalar in `eᵢ`.
+  unfold rMat gsCol gramSchmidtNormed
+  rw [inner_smul_left]
+  -- Gram-Schmidt orthogonalizes `ẽᵢ` against the earlier columns `g⁽ʲ⁾` (`j < i`).
+  have h0 : @inner ℝ _ _ (gramSchmidt ℝ (gCol g) i) (gCol g j) = 0 :=
+    gramSchmidt_inv_triangular ℝ (gCol g) hij
+  rw [h0]
+  simp
+
+lemma rMat_diag (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
+    rMat g i i = ‖gramSchmidt ℝ (gCol g) i‖ := by
+  unfold rMat gsCol gramSchmidtNormed
+  rw [inner_smul_left]
+
+  have hexpand : gCol g i = gramSchmidt ℝ (gCol g) i +
+      ∑ k ∈ Finset.Iio i, (Submodule.starProjection (ℝ ∙ gramSchmidt ℝ (gCol g) k)) (gCol g i) := by
+    exact gramSchmidt_def' ℝ (gCol g) i
+  rw [hexpand]
+  rw [inner_add_right]
+  rw [inner_sum]
+
+  rw [@real_inner_self_eq_norm_mul_norm]
+
+  have hzero : ∀ k ∈ Finset.Iio i,
+      @inner ℝ _ _ (gramSchmidt ℝ (gCol g) i)
+        (Submodule.starProjection (ℝ ∙ gramSchmidt ℝ (gCol g) k) (gCol g i)) = 0 := by
+    intros k hk
+    rw [Submodule.starProjection_singleton]
+    rw [inner_smul_right]
+    have hki : k < i := Finset.mem_Iio.mp hk
+    have : @inner ℝ _ _ (gramSchmidt ℝ (gCol g) i) (gramSchmidt ℝ (gCol g) k) = 0 :=
+      gramSchmidt_orthogonal ℝ _ hki.ne'
+    rw [this, mul_zero]
+  rw [Finset.sum_eq_zero hzero, add_zero]
+
+  show (‖gramSchmidt ℝ (gCol g) i‖ : ℝ)⁻¹ *
+      (‖gramSchmidt ℝ (gCol g) i‖ * ‖gramSchmidt ℝ (gCol g) i‖) = _
+  by_cases hzero : gramSchmidt ℝ (gCol g) i = 0
+  · simp [hzero]
+  · field_simp
 
 lemma rMat_diag_pos {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) (i : Fin n) :
-    0 < rMat g i i
+    0 < rMat g i i := by
+  rw [rMat_diag g]
+  rw [norm_pos_iff]
+  exact gramSchmidt_ne_zero i (gCol_linearIndependent hg)
+```
+
+Supporting facts (statements): the identity `R = Qᵀ g`, the recovery `g = Q R`, and upper triangularity packaged as a predicate.
+
+```lean
+lemma rMat_eq_QT_mul_g (g : Matrix (Fin n) (Fin n) ℝ) :
+    rMat g = (qMat g)ᵀ * g
+
+lemma g_eq_Q_mul_R {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
+    g = qMat g * rMat g
+
+lemma rMat_isUpperTriangular (g : Matrix (Fin n) (Fin n) ℝ) :
+    IsUpperTriangular (rMat g)
 ```
 
 ### 4.4 Splitting $R = a \cdot u$
@@ -475,10 +666,13 @@ written $R$ as a product
 
 $$R = a \cdot u, \qquad a \in A, \qquad u \in N.$$
 
-**In Lean.** `dMat` is the diagonal part of `R`, `uMat = a⁻¹ R` the unipotent
-remainder, and they multiply back to `R`.
+**In Lean.** The naive diagonal inverse `diagInv`, the diagonal part `dMat` and unipotent remainder `uMat`, with full proofs that `a · u = R` and that `u` has unit diagonal.
 
 ```lean
+noncomputable def diagInv (M : Matrix (Fin n) (Fin n) ℝ) :
+    Matrix (Fin n) (Fin n) ℝ :=
+  fun i j => if i = j then (M i i)⁻¹ else 0
+
 noncomputable def dMat (g : Matrix (Fin n) (Fin n) ℝ) : Matrix (Fin n) (Fin n) ℝ :=
   fun i j => if i = j then rMat g i i else 0
 
@@ -486,7 +680,60 @@ noncomputable def uMat (g : Matrix (Fin n) (Fin n) ℝ) : Matrix (Fin n) (Fin n)
   diagInv (dMat g) * rMat g
 
 lemma dMat_mul_uMat {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
-    dMat g * uMat g = rMat g
+    dMat g * uMat g = rMat g := by
+  -- `u = (diagInv a) R`, so `a * u = (a * diagInv a) * R = I * R = R`.
+  unfold uMat
+  rw [← Matrix.mul_assoc]
+  rw [(dMat_isPositiveDiagonal hg).self_mul_diagInv]
+  rw [Matrix.one_mul]
+
+lemma uMat_diag {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) (i : Fin n) :
+    uMat g i i = 1 := by
+  unfold uMat
+  rw [Matrix.mul_apply]
+  -- `diagInv a` is diagonal, so the `(i, i)` entry of `(diagInv a) R` is the
+  -- single term `(R i i)⁻¹ * R i i = 1`.
+  rw [Finset.sum_eq_single i]
+  · rw [diagInv_diag, dMat_diag]
+    rw [inv_mul_cancel₀ (ne_of_gt (rMat_diag_pos hg i))]
+  · intros k _ hk
+    rw [diagInv_off_diag (Ne.symm hk), zero_mul]
+  · intros habs
+    exact absurd (Finset.mem_univ i) habs
+```
+
+Supporting facts (statements):
+
+```lean
+@[simp] lemma diagInv_diag (M : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
+    diagInv M i i = (M i i)⁻¹
+
+lemma diagInv_off_diag {M : Matrix (Fin n) (Fin n) ℝ} {i j : Fin n} (h : i ≠ j) :
+    diagInv M i j = 0
+
+lemma IsPositiveDiagonal.diagInv_mul_self {M : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsPositiveDiagonal M) : diagInv M * M = 1
+
+lemma IsPositiveDiagonal.self_mul_diagInv {M : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsPositiveDiagonal M) : M * diagInv M = 1
+
+lemma IsPositiveDiagonal.isPositiveDiagonal_diagInv {M : Matrix (Fin n) (Fin n) ℝ}
+    (hM : IsPositiveDiagonal M) : IsPositiveDiagonal (diagInv M)
+
+lemma dMat_diag (g : Matrix (Fin n) (Fin n) ℝ) (i : Fin n) :
+    dMat g i i = rMat g i i
+
+lemma dMat_off_diag {g : Matrix (Fin n) (Fin n) ℝ} {i j : Fin n} (h : i ≠ j) :
+    dMat g i j = 0
+
+lemma dMat_isPositiveDiagonal {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
+    IsPositiveDiagonal (dMat g)
+
+lemma uMat_isUpperTriangular (g : Matrix (Fin n) (Fin n) ℝ) :
+    IsUpperTriangular (uMat g)
+
+lemma uMat_isUpperUnipotent {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
+    IsUpperUnipotent (uMat g)
 ```
 
 ### 4.5 Assembling the factorization
@@ -511,8 +758,7 @@ $$g = Q \cdot R = Q \cdot (a \cdot u) = k \cdot a \cdot u.$$
 This is the required factorization. Existence is proved.
 $\blacksquare$
 
-**In Lean.** The three factors are packaged into a concrete
-`IwasawaFactorization`, which witnesses existence.
+**In Lean.** The three factors are packaged into a concrete `IwasawaFactorization`; existence follows immediately.
 
 ```lean
 noncomputable def iwasawa {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
@@ -524,6 +770,7 @@ noncomputable def iwasawa {g : Matrix (Fin n) (Fin n) ℝ} (hg : g.det ≠ 0) :
   a_positiveDiagonal := dMat_isPositiveDiagonal hg
   u_upperUnipotent := uMat_isUpperUnipotent hg
   factorization := by
+    -- `Q * a * u = Q * (a * u) = Q * R = g`.
     rw [Matrix.mul_assoc]
     rw [dMat_mul_uMat hg]
     exact g_eq_Q_mul_R hg
@@ -734,32 +981,245 @@ $$a_1 = a_2, \qquad u_1 = u_2.$$
 
 This completes the uniqueness proof. $\blacksquare$
 
-**In Lean.** Uniqueness is one theorem on the bundled structure. Its proof is
-the §5.1 to §5.5 skeleton below (`...` elides routine algebra), closing with
-the shape comparison lemma.
+**In Lean.** A small toolkit of determinant and inverse facts (statements), then the two substantive proofs: the shape comparison lemma and uniqueness itself, in full.
 
 ```lean
-theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
-    (F G : IwasawaFactorization g) :
-    F.k = G.k ∧ F.a = G.a ∧ F.u = G.u := by
-  ...
-  set M := k₂ᵀ * k₁                                    -- §5.1
-  have hMorth : IsOrthogonal M := ...                  -- §5.2
-  have hM_UT : IsUpperTriangular M := ...              -- §5.3
-  have hM_pos : ∀ i, 0 < M i i := ...                  -- §5.3
-  have hM_one : M = 1 :=                                -- §5.4
-    orthogonal_upperTriangular_posDiag_eq_one hMorth hM_UT hM_pos
-  have hk_eq : k₁ = k₂ := ...                           -- §5.4
-  obtain ⟨ha_eq, hU_one⟩ :=                             -- §5.5
-    posDiag_mul_upperUnip_eq_diag_iff ha₂ ha₁ hU_unip ha₂U_eq_a₁
-  ...
-
--- the shape comparison lemma used at §5.5
 lemma posDiag_mul_upperUnip_eq_diag_iff
     {a a' u : Matrix (Fin n) (Fin n) ℝ}
     (ha : IsPositiveDiagonal a) (ha' : IsPositiveDiagonal a')
     (hu : IsUpperUnipotent u)
-    (h : a * u = a') : a = a' ∧ u = 1
+    (h : a * u = a') : a = a' ∧ u = 1 := by
+
+  -- Step 1: `a = a'`. Compare entries of `a * u = a'` by trichotomy on `(i, j)`.
+  have h_eq_diag : a = a' := by
+    ext i j
+    have h_ij := congrFun (congrFun h i) j
+    rcases lt_trichotomy i j with hlt | heq | hgt
+    · -- Above the diagonal both diagonal matrices `a, a'` vanish.
+      rw [ha.1 i j (ne_of_lt hlt)]
+      rw [ha'.1 i j (ne_of_lt hlt)]
+    · -- On the diagonal `(a * u) i i = a i i * u i i = a i i`, equal to `a' i i`.
+      subst heq
+      rw [Matrix.mul_apply] at h_ij
+      rw [Finset.sum_eq_single i] at h_ij
+      · rw [hu.2 i, mul_one] at h_ij
+        exact h_ij
+      · intros k _ hk
+        rw [ha.1 i k (Ne.symm hk), zero_mul]
+      · intro h; exact absurd (Finset.mem_univ i) h
+    · -- Below the diagonal both diagonal matrices vanish again.
+      rw [ha.1 i j (ne_of_gt hgt), ha'.1 i j (ne_of_gt hgt)]
+  refine ⟨h_eq_diag, ?_⟩
+  -- Step 2: `u = 1`. Compare entries of `a * u = a'` once more.
+  ext i j
+  have h_ij := congrFun (congrFun h i) j
+  rcases lt_trichotomy i j with hlt | heq | hgt
+  · -- Above the diagonal `a' i j = 0`; the sum gives `a i i * u i j`, and since
+    -- `a i i ≠ 0` this forces `u i j = 0 = (1) i j`.
+    have h_aij : a' i j = 0 := ha'.1 i j (ne_of_lt hlt)
+    rw [Matrix.mul_apply] at h_ij
+    rw [Finset.sum_eq_single i] at h_ij
+    · rw [h_aij] at h_ij
+      have ha_pos : 0 < a i i := ha.2 i
+      have h_aii_ne : a i i ≠ 0 := ne_of_gt ha_pos
+      have huij_zero : u i j = 0 := by
+        have h_ij_eq : a i i * u i j = 0 := h_ij
+        rcases mul_eq_zero.mp h_ij_eq with h1 | h2
+        · exact absurd h1 h_aii_ne
+        · exact h2
+      rw [huij_zero, Matrix.one_apply_ne (ne_of_lt hlt)]
+    · intros k _ hk
+      rw [ha.1 i k (Ne.symm hk), zero_mul]
+    · intro h; exact absurd (Finset.mem_univ i) h
+  · -- On the diagonal `u i i = 1` (upper unipotent).
+    subst heq; rw [hu.2 i, Matrix.one_apply_eq]
+  · -- Below the diagonal `u i j = 0` (upper triangular).
+    rw [hu.1 hgt, Matrix.one_apply_ne (ne_of_gt hgt)]
+
+theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
+    (F G : IwasawaFactorization g) :
+    F.k = G.k ∧ F.a = G.a ∧ F.u = G.u := by
+  obtain ⟨k₁, a₁, u₁, hk₁, ha₁, hu₁, hf₁⟩ := F
+  obtain ⟨k₂, a₂, u₂, hk₂, ha₂, hu₂, hf₂⟩ := G
+
+  -- The two factorizations of `g` agree: `k₁ a₁ u₁ = k₂ a₂ u₂`.
+  have heq : k₁ * a₁ * u₁ = k₂ * a₂ * u₂ := hf₁.symm.trans hf₂
+  -- `u₁` and `a₁` are invertible (nonzero determinant); needed for the algebra.
+  letI : Invertible u₁ := u₁.invertibleOfIsUnitDet (Ne.isUnit hu₁.det_ne_zero)
+  letI : Invertible a₁ := a₁.invertibleOfIsUnitDet (Ne.isUnit (ne_of_gt ha₁.det_pos))
+  -- §5.1: introduce the auxiliary matrix `M := k₂ᵀ k₁`.
+  set M : Matrix (Fin n) (Fin n) ℝ := k₂ᵀ * k₁ with hM_def
+  -- §5.2: `M Mᵀ = k₂ᵀ (k₁ k₁ᵀ) k₂ = k₂ᵀ k₂ = I`, so `M` is orthogonal.
+  have hMorth : IsOrthogonal M := by
+    unfold IsOrthogonal
+    rw [hM_def, Matrix.transpose_mul, Matrix.transpose_transpose]
+    rw [Matrix.mul_assoc, ← Matrix.mul_assoc k₁, hk₁, Matrix.one_mul]
+    exact mul_eq_one_comm.mpr hk₂
+
+  -- §5.3 (rewrite): right-multiply the factorization by `(a₁ u₁)⁻¹` and use
+  -- `k₂ᵀ k₂ = I` to solve for `M = a₂ u₂ u₁⁻¹ a₁⁻¹`.
+  have hM_eq : M = a₂ * u₂ * u₁⁻¹ * a₁⁻¹ := by
+
+    have h3 : M * a₁ * u₁ = a₂ * u₂ := by
+      rw [hM_def, Matrix.mul_assoc, Matrix.mul_assoc]
+      have hheq2 : k₁ * (a₁ * u₁) = k₂ * (a₂ * u₂) := by
+        rw [← Matrix.mul_assoc, ← Matrix.mul_assoc, heq]
+      rw [hheq2, ← Matrix.mul_assoc, mul_eq_one_comm.mpr hk₂, Matrix.one_mul]
+
+    have h4 : M * a₁ = a₂ * u₂ * u₁⁻¹ := by
+      have heq4 := congrArg (· * u₁⁻¹) h3
+      simp only at heq4
+      rw [Matrix.mul_assoc, Matrix.mul_inv_of_invertible, Matrix.mul_one] at heq4
+      exact heq4
+
+    have heq5 := congrArg (· * a₁⁻¹) h4
+    simp only at heq5
+    rw [Matrix.mul_assoc, Matrix.mul_inv_of_invertible, Matrix.mul_one] at heq5
+    exact heq5
+
+  -- §5.3 (shape): each factor of `a₂ u₂ u₁⁻¹ a₁⁻¹` is upper triangular, and that
+  -- property is closed under products.
+  have hM_UT : IsUpperTriangular M := by
+    rw [hM_eq]
+    apply IsUpperTriangular.mul
+    apply IsUpperTriangular.mul
+    apply IsUpperTriangular.mul
+    · exact ha₂.isUpperTriangular
+    · exact hu₂.1
+    · exact hu₁.inv.1
+    · exact ha₁.matInv.isUpperTriangular
+
+  -- §5.3 (diagonal): `Mᵢᵢ = a₂ᵢᵢ · 1 · 1 · (a₁ᵢᵢ)⁻¹ > 0`.
+  have hM_pos : ∀ i, 0 < M i i := by
+    intro i
+    rw [hM_eq]
+    -- The diagonal of a product of upper triangular matrices is the product of
+    -- the diagonal entries; peel the factors off one at a time.
+    have h_diag : (a₂ * u₂ * u₁⁻¹ * a₁⁻¹) i i =
+        a₂ i i * u₂ i i * u₁⁻¹ i i * a₁⁻¹ i i := by
+      have h1 := hu₁.inv
+      have h2 := ha₁.matInv
+
+      have hdiag1 : (a₂ * u₂) i i = a₂ i i * u₂ i i := by
+        rw [Matrix.mul_apply]
+        rw [Finset.sum_eq_single i]
+        · intros k _ hk
+          rw [ha₂.1 i k (Ne.symm hk), zero_mul]
+        · intro h; exact absurd (Finset.mem_univ i) h
+
+      have ha₂u₂_UT : IsUpperTriangular (a₂ * u₂) :=
+        IsUpperTriangular.mul ha₂.isUpperTriangular hu₂.1
+      have hdiag2 : (a₂ * u₂ * u₁⁻¹) i i = (a₂ * u₂) i i * u₁⁻¹ i i := by
+        rw [Matrix.mul_apply]
+        rw [Finset.sum_eq_single i]
+        · intros k _ hk
+          rcases lt_or_gt_of_ne hk with h | h
+          ·
+            rw [ha₂u₂_UT h, zero_mul]
+          ·
+            rw [h1.1 h, mul_zero]
+        · intro h; exact absurd (Finset.mem_univ i) h
+      have ha₂u₂u₁_UT : IsUpperTriangular (a₂ * u₂ * u₁⁻¹) :=
+        IsUpperTriangular.mul ha₂u₂_UT h1.1
+      have hdiag3 : (a₂ * u₂ * u₁⁻¹ * a₁⁻¹) i i = (a₂ * u₂ * u₁⁻¹) i i * a₁⁻¹ i i := by
+        rw [Matrix.mul_apply]
+        rw [Finset.sum_eq_single i]
+        · intros k _ hk
+          rcases lt_or_gt_of_ne hk with hh | hh
+          · rw [ha₂u₂u₁_UT hh, zero_mul]
+          · rw [h2.isUpperTriangular hh, mul_zero]
+        · intro h; exact absurd (Finset.mem_univ i) h
+      rw [hdiag3, hdiag2, hdiag1]
+    rw [h_diag]
+    -- A product of positive numbers: `a₂ᵢᵢ > 0`, `(u₂)ᵢᵢ = (u₁⁻¹)ᵢᵢ = 1`, `(a₁⁻¹)ᵢᵢ > 0`.
+    apply mul_pos
+    apply mul_pos
+    apply mul_pos
+    · exact ha₂.2 i
+    · rw [hu₂.2 i]; exact one_pos
+    · rw [hu₁.inv.2 i]; exact one_pos
+    · exact ha₁.matInv.2 i
+
+  -- §5.4: the key lemma applies to `M`, forcing `M = I`.
+  have hM_one : M = 1 := orthogonal_upperTriangular_posDiag_eq_one hMorth hM_UT hM_pos
+  -- §5.4: `k₂ᵀ k₁ = I` left-multiplied by `k₂` (with `k₂ k₂ᵀ = I`) gives `k₁ = k₂`.
+  have hk_eq : k₁ = k₂ := by
+    have h : k₂ᵀ * k₁ = 1 := hM_one
+
+    have hc := congrArg (k₂ * ·) h
+    simp only at hc
+    rw [← Matrix.mul_assoc, hk₂, Matrix.one_mul, Matrix.mul_one] at hc
+    exact hc
+
+  -- §5.5: cancel the common factor `k₁ = k₂` on the left to get `a₁ u₁ = a₂ u₂`.
+  have hau_eq : a₁ * u₁ = a₂ * u₂ := by
+    have h := heq
+    rw [hk_eq] at h
+
+    letI : Invertible k₂ := k₂.invertibleOfIsUnitDet (Ne.isUnit hk₂.det_ne_zero)
+    have := congrArg (k₂⁻¹ * ·) h
+    simp only at this
+    rw [← Matrix.mul_assoc, ← Matrix.mul_assoc, ← Matrix.mul_assoc, ← Matrix.mul_assoc] at this
+    rw [Matrix.inv_mul_of_invertible, Matrix.one_mul, Matrix.one_mul] at this
+    exact this
+
+  letI : Invertible a₂ := a₂.invertibleOfIsUnitDet (Ne.isUnit (ne_of_gt ha₂.det_pos))
+
+  -- §5.5: set `U := u₂ u₁⁻¹` (upper unipotent); from `a₁ u₁ = a₂ u₂` we get `a₂ U = a₁`,
+  -- a "positive diagonal = positive diagonal × unipotent" equation.
+  set U : Matrix (Fin n) (Fin n) ℝ := u₂ * u₁⁻¹ with hU_def
+  have hU_unip : IsUpperUnipotent U := IsUpperUnipotent.mul hu₂ hu₁.inv
+  have ha₂U_eq_a₁ : a₂ * U = a₁ := by
+
+    have := congrArg (· * u₁⁻¹) hau_eq
+    simp only at this
+    rw [Matrix.mul_assoc, Matrix.mul_inv_of_invertible, Matrix.mul_one] at this
+    rw [hU_def, ← Matrix.mul_assoc]
+    exact this.symm
+  -- The structural lemma pins down both factors: `a₂ = a₁` and `U = 1`.
+  obtain ⟨ha_eq, hU_one⟩ := posDiag_mul_upperUnip_eq_diag_iff ha₂ ha₁ hU_unip ha₂U_eq_a₁
+  -- `U = u₂ u₁⁻¹ = 1` right-multiplied by `u₁` gives `u₁ = u₂`.
+  have hu_eq : u₁ = u₂ := by
+    have h := hU_one
+    rw [hU_def] at h
+    have := congrArg (· * u₁) h
+    simp only at this
+    rw [Matrix.mul_assoc, Matrix.inv_mul_of_invertible, Matrix.mul_one, Matrix.one_mul] at this
+    exact this.symm
+  exact ⟨hk_eq, ha_eq.symm, hu_eq⟩
+```
+
+Determinant and inverse toolkit, plus the diagonal-meets-unipotent fact (statements):
+
+```lean
+lemma IsUpperUnipotent.det {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipotent U) :
+    U.det = 1
+
+lemma IsUpperUnipotent.det_ne_zero {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipotent U) :
+    U.det ≠ 0
+
+lemma IsPositiveDiagonal.isUpperTriangular {D : Matrix (Fin n) (Fin n) ℝ}
+    (hD : IsPositiveDiagonal D) : IsUpperTriangular D
+
+lemma IsPositiveDiagonal.det_pos {D : Matrix (Fin n) (Fin n) ℝ} (hD : IsPositiveDiagonal D) :
+    0 < D.det
+
+lemma IsUpperUnipotent.inv {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipotent U) :
+    IsUpperUnipotent U⁻¹
+
+lemma IsPositiveDiagonal.matInv_eq_diagInv {D : Matrix (Fin n) (Fin n) ℝ}
+    (hD : IsPositiveDiagonal D) : D⁻¹ = diagInv D
+
+lemma IsPositiveDiagonal.matInv {D : Matrix (Fin n) (Fin n) ℝ}
+    (hD : IsPositiveDiagonal D) : IsPositiveDiagonal D⁻¹
+
+lemma IsOrthogonal.matInv_eq_transpose {Q : Matrix (Fin n) (Fin n) ℝ}
+    (hQ : IsOrthogonal Q) : Q⁻¹ = Qᵀ
+
+lemma upperUnipotent_inter_positiveDiagonal_eq_one
+    {M : Matrix (Fin n) (Fin n) ℝ}
+    (hUU : IsUpperUnipotent M) (hPD : IsPositiveDiagonal M) :
+    M = 1
 ```
 
 ---
@@ -784,16 +1244,27 @@ upper triangular, and has strictly positive diagonal is the identity.
 
 This is the **Iwasawa decomposition** for $GL_n(\mathbb{R})$.
 
-**In Lean.** The conclusion combines the two halves: the explicit triple from
-§4 witnesses existence, and `iwasawa_unique` from §5 forces any other triple to
-match (skeleton of the proof of `iwasawaDecomposition`).
+**In Lean.** The conclusion: the explicit triple witnesses existence and `iwasawa_unique` forces any other triple to match, combined into the unique existence theorem.
 
 ```lean
-refine ⟨(qMat g, dMat g, uMat g), ?_, ?_⟩          -- the explicit triple
-· exact ⟨qMat_orthogonal hg, dMat_isPositiveDiagonal hg,
-         uMat_isUpperUnipotent hg, ...⟩             -- it is a valid factorization
-· -- any (k', a', u') with the same properties equals it, via `iwasawa_unique`
-  ...
+theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0) :
+    ∃! (kau : Matrix (Fin n) (Fin n) ℝ × Matrix (Fin n) (Fin n) ℝ ×
+              Matrix (Fin n) (Fin n) ℝ),
+      IsOrthogonal kau.1 ∧ IsPositiveDiagonal kau.2.1 ∧ IsUpperUnipotent kau.2.2 ∧
+      g = kau.1 * kau.2.1 * kau.2.2 := by
+  -- Existence: the explicit Gram-Schmidt triple `(Q, a, u)` is a witness.
+  refine ⟨(qMat g, dMat g, uMat g), ?_, ?_⟩
+  · refine ⟨qMat_orthogonal hg, dMat_isPositiveDiagonal hg, uMat_isUpperUnipotent hg, ?_⟩
+    show g = qMat g * dMat g * uMat g
+    rw [Matrix.mul_assoc, dMat_mul_uMat hg]
+    exact g_eq_Q_mul_R hg
+  -- Uniqueness: any other valid triple packages as an `IwasawaFactorization`,
+  -- so `iwasawa_unique` identifies it with the explicit one.
+  · intro ⟨k', a', u'⟩ ⟨hk', ha', hu', hg'⟩
+    let G : IwasawaFactorization g := ⟨k', a', u', hk', ha', hu', hg'⟩
+    let F : IwasawaFactorization g := iwasawa hg
+    obtain ⟨hk_eq, ha_eq, hu_eq⟩ := iwasawa_unique F G
+    exact Prod.ext hk_eq.symm (Prod.ext ha_eq.symm hu_eq.symm)
 ```
 
 ---
