@@ -7,6 +7,11 @@ orthogonal matrix, a positive diagonal matrix, and an upper-triangular
 matrix with ones on the diagonal. The proof follows the one given by
 Lang in *Linear Algebra* (3rd edition, 1987, Appendix II).
 
+Every step is formalized and verified by machine in the companion
+Lean 4 file [`Iwasawa.lean`](Iwasawa.lean); the section numbers below
+match the `§` markers in that file (see
+[Formalization in Lean](#formalization-in-lean) at the end).
+
 The exposition is organized into six sections:
 
 1. Notation and the three subgroups involved.
@@ -571,6 +576,39 @@ observation that the only matrix that is simultaneously orthogonal,
 upper triangular, and has strictly positive diagonal is the identity.
 
 This is the **Iwasawa decomposition** for $GL_n(\mathbb{R})$.
+
+---
+
+## Formalization in Lean
+
+The proof above is fully formalized in Lean 4 (with Mathlib) in the
+companion file [`Iwasawa.lean`](Iwasawa.lean). It compiles with no
+`sorry`, and the main theorems depend only on Lean's three standard
+foundational axioms (`propext`, `Classical.choice`, `Quot.sound`).
+
+Each section of this document corresponds to declarations in that file:
+
+| Document | Lean declaration(s) |
+| --- | --- |
+| §1 Three subgroups | `IsOrthogonal`, `IsPositiveDiagonal`, `IsUpperUnipotent` |
+| §2 Statement | `IwasawaFactorization`, `iwasawaDecomposition` |
+| §3 Key lemma | `orthogonal_upperTriangular_posDiag_eq_one` |
+| §4 Existence | `qMat`, `dMat`, `uMat`, `exists_iwasawa` |
+| §5 Uniqueness | `iwasawa_unique` |
+| §6 Conclusion | `iwasawaDecomposition` |
+
+### Building and checking
+
+The toolchain is pinned in `lean-toolchain` (Lean `v4.30.0-rc1`). From
+the directory containing `lakefile.toml`:
+
+```sh
+lake exe cache get   # download the prebuilt Mathlib cache
+lake build           # elaborate and check Iwasawa.lean
+```
+
+A successful `lake build` is a complete machine verification of every
+claim made above.
 
 ---
 
