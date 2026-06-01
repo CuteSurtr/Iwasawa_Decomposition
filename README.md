@@ -1215,11 +1215,6 @@ lemma IsPositiveDiagonal.matInv {D : Matrix (Fin n) (Fin n) ℝ}
 
 lemma IsOrthogonal.matInv_eq_transpose {Q : Matrix (Fin n) (Fin n) ℝ}
     (hQ : IsOrthogonal Q) : Q⁻¹ = Qᵀ
-
-lemma upperUnipotent_inter_positiveDiagonal_eq_one
-    {M : Matrix (Fin n) (Fin n) ℝ}
-    (hUU : IsUpperUnipotent M) (hPD : IsPositiveDiagonal M) :
-    M = 1
 ```
 
 ---
