@@ -1,3 +1,12 @@
+/-
+Iwasawa decomposition of GLₙ(ℝ). Math 157 final project.
+
+Author: Jiho Lee (CuteSurtr)
+Email:  jil256@ucsd.edu
+PID:    A17209156
+
+Sole author; all contributions are the author's own.
+-/
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.LinearAlgebra.Matrix.Block
 import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Basic
@@ -746,19 +755,6 @@ lemma orthogonal_upperTriangular_posDiag_eq_one
     rw [hDiag hij, Matrix.one_apply_ne hij]
 
 /-! ### Auxiliary uniqueness lemmas -/
-
-/-- A matrix that is simultaneously upper unipotent and positive diagonal
-is the identity. The upper unipotent condition forces every diagonal
-entry to be `1`, while the positive diagonal condition forces every off
-diagonal entry to be `0`. -/
-lemma upperUnipotent_inter_positiveDiagonal_eq_one
-    {M : Matrix (Fin n) (Fin n) ℝ}
-    (hUU : IsUpperUnipotent M) (hPD : IsPositiveDiagonal M) :
-    M = 1 := by
-  ext i j
-  rcases eq_or_ne i j with rfl | hij
-  · rw [hUU.2 i, Matrix.one_apply_eq]
-  · rw [hPD.1 i j hij, Matrix.one_apply_ne hij]
 
 /-- If `a * u = a'` where `a, a'` are positive diagonal and `u` is upper
 unipotent, then `a = a'` and `u = 1`. This is the structural step in
