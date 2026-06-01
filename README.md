@@ -22,6 +22,24 @@ The exposition is organized into six sections:
 5. The uniqueness proof, by reduction to the key lemma.
 6. A short conclusion summarizing the result.
 
+The diagram below shows how the pieces fit together: the three
+subgroups support both halves of the argument, the key lemma drives
+uniqueness, and existence together with uniqueness give the theorem.
+
+```mermaid
+flowchart TD
+    KAN["Three subgroups K, A, N<br/>IsOrthogonal, IsPositiveDiagonal, IsUpperUnipotent"]
+    KEY["§3 Key lemma<br/>orthogonal + upper triangular + positive diagonal = identity"]
+    EX["§4 Existence<br/>build (k, a, u) by Gram-Schmidt on the columns of g"]
+    UNIQ["§5 Uniqueness<br/>two factorizations of g must agree"]
+    THM["§2 and §6 Iwasawa decomposition<br/>unique (k, a, u) with g = k a u"]
+    KAN --> KEY
+    KAN --> EX
+    KEY --> UNIQ
+    EX --> THM
+    UNIQ --> THM
+```
+
 ---
 
 ## 1. Notation
@@ -146,6 +164,19 @@ The construction proceeds in five steps:
 - 4.4: Split $R$ as $R = a \cdot u$ where $a$ is positive diagonal
   and $u$ is upper unipotent.
 - 4.5: Combine to obtain the factorization $g = Q \cdot a \cdot u$.
+
+As a pipeline, the construction reads left to right:
+
+```mermaid
+flowchart LR
+    G["g with det g ≠ 0"]
+    GS["Gram-Schmidt<br/>orthonormal columns (§4.1)"]
+    Q["Q = qMat g<br/>orthogonal (§4.2)"]
+    R["R = Qᵀ g<br/>upper triangular,<br/>positive diagonal (§4.3)"]
+    AU["split R = a u<br/>a = dMat g, u = uMat g (§4.4)"]
+    OUT["g = Q a u (§4.5)"]
+    G --> GS --> Q --> R --> AU --> OUT
+```
 
 ### 4.1 Gram–Schmidt on the columns of $g$
 
@@ -397,6 +428,26 @@ The argument proceeds in five steps:
 - 5.4: Apply the key lemma to deduce $k_1 = k_2$.
 - 5.5: Cancel and compare shapes to deduce $a_1 = a_2$ and
   $u_1 = u_2$.
+
+The whole argument is a reduction to the key lemma:
+
+```mermaid
+flowchart TD
+    TWO["two factorizations:<br/>k1 a1 u1 = k2 a2 u2"]
+    M["M = k2ᵀ k1 (§5.1)"]
+    ORTH["M orthogonal (§5.2)"]
+    UT["M upper triangular,<br/>positive diagonal (§5.3)"]
+    KEY["Key lemma (§3)"]
+    MI["M = I, hence k1 = k2 (§5.4)"]
+    LAST["cancel k, compare shapes:<br/>a1 = a2 and u1 = u2 (§5.5)"]
+    TWO --> M
+    M --> ORTH
+    M --> UT
+    ORTH --> KEY
+    UT --> KEY
+    KEY --> MI
+    MI --> LAST
+```
 
 ### 5.1 The auxiliary matrix $M$
 
