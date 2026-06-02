@@ -1,5 +1,7 @@
 # The Iwasawa Decomposition of $GL_n(\mathbb{R})$
 
+[![build](https://github.com/CuteSurtr/Iwasawa_Decomposition/actions/workflows/build.yml/badge.svg)](https://github.com/CuteSurtr/Iwasawa_Decomposition/actions/workflows/build.yml)
+
 This document records a complete proof of the Iwasawa decomposition
 for the real general linear group $GL_n(\mathbb{R})$: every invertible
 $n \times n$ real matrix factors uniquely as the product of an
@@ -11,6 +13,11 @@ Every step is formalized and verified by machine in the companion
 Lean 4 file [`Iwasawa.lean`](Iwasawa.lean); the section numbers below
 match the `§` markers in that file (see
 [Formalization in Lean](#formalization-in-lean) at the end).
+
+As of the pinned Mathlib version, this decomposition is not in Mathlib (the
+only `Iwasawa` entries there are an unrelated group simplicity criterion and a
+TODO for `Iwasawa matrices`), so the formalization fills a genuine gap, built
+on Mathlib's `gramSchmidt` API.
 
 The exposition is organized into six sections:
 
