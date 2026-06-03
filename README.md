@@ -562,10 +562,9 @@ R_{ii}
 \end{aligned}
 $$
 
-Since $\tilde{e}_i \neq 0$, we have $\lVert \tilde{e}_i \rVert > 0$,
-hence
+Since $\tilde{e}_i \neq 0$, its norm is strictly positive, and therefore
 
-$$R_{ii} > 0.$$
+$$R_{ii} = \lVert \tilde{e}_i \rVert > 0.$$
 
 **In Lean.** `rMat` has entries `⟨eᵢ, g⁽ʲ⁾⟩`; below the diagonal it vanishes, and the diagonal entry equals the norm of the unnormalized Gram-Schmidt vector (so it is strictly positive).
 
