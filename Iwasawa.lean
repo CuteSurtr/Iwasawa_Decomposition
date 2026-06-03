@@ -2,8 +2,6 @@
 Iwasawa decomposition of GLₙ(ℝ). Math 157 final project.
 
 Author: Jiho Lee (CuteSurtr)
-Email:  jil256@ucsd.edu
-PID:    A17209156
 
 Sole author; all contributions are the author's own.
 -/
@@ -156,15 +154,6 @@ lemma IsUpperUnipotent.mul {M N : Matrix (Fin n) (Fin n) ℝ}
         have h_lt : k < i := lt_of_le_of_ne h hk
         rw [hM.1 h_lt, zero_mul]
     · intro habs; exact absurd (Finset.mem_univ i) habs
-
-/-- The transpose of an orthogonal matrix is orthogonal. From `M Mᵀ = I`
-and the fact that left and right inverses coincide for square matrices,
-we get `Mᵀ M = I`, which is exactly `Mᵀ (Mᵀ)ᵀ = I`. -/
-lemma IsOrthogonal.transpose {M : Matrix (Fin n) (Fin n) ℝ}
-    (hM : IsOrthogonal M) : IsOrthogonal Mᵀ := by
-  unfold IsOrthogonal at hM ⊢
-  rw [Matrix.transpose_transpose]
-  exact (mul_eq_one_comm.mp hM)
 
 /-- The determinant of an orthogonal matrix squares to `1`, since
 `(det M)² = det M * det Mᵀ = det (M * Mᵀ) = det I = 1`. -/
@@ -679,13 +668,6 @@ lemma IsPositiveDiagonal.matInv {D : Matrix (Fin n) (Fin n) ℝ}
   rw [hD.matInv_eq_diagInv]
   exact hD.isPositiveDiagonal_diagInv
 
-/-- The matrix inverse of an orthogonal matrix `Q` equals its transpose:
-`Q⁻¹ = Qᵀ`. This is just a restatement of `Qᵀ Q = I`. -/
-lemma IsOrthogonal.matInv_eq_transpose {Q : Matrix (Fin n) (Fin n) ℝ}
-    (hQ : IsOrthogonal Q) : Q⁻¹ = Qᵀ := by
-  apply Matrix.inv_eq_left_inv
-  exact mul_eq_one_comm.mpr hQ
-
 /-! ### §3. The key lemma -/
 
 /-- **Key lemma (README §3).** A matrix that is simultaneously orthogonal,
@@ -1002,5 +984,16 @@ theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0)
     let F : IwasawaFactorization g := iwasawa hg
     obtain ⟨hk_eq, ha_eq, hu_eq⟩ := iwasawa_unique F G
     exact Prod.ext hk_eq.symm (Prod.ext ha_eq.symm hu_eq.symm)
+
+/-! ### Axiom audit
+
+The four headline results reduce to Lean's three standard foundational
+axioms only. The `#print axioms` commands below make `lake build` report
+that dependency, so the claim in the README is checked by the build
+rather than only asserted. -/
+#print axioms iwasawaDecomposition
+#print axioms exists_iwasawa
+#print axioms iwasawa_unique
+#print axioms orthogonal_upperTriangular_posDiag_eq_one
 
 end Iwasawa
