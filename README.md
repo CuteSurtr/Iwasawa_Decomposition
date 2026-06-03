@@ -102,7 +102,7 @@ def IsOrthogonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
   M * Mᵀ = 1
 ```
 
-Each subgroup contains the identity and is closed under products; for `K` we also need the transpose and determinant facts (statements):
+Each subgroup contains the identity and is closed under products; for `K` we also need the determinant facts (statements):
 
 ```lean
 lemma IsUpperTriangular.one : IsUpperTriangular (1 : Matrix (Fin n) (Fin n) ℝ)
@@ -124,9 +124,6 @@ lemma IsPositiveDiagonal.mul {M N : Matrix (Fin n) (Fin n) ℝ}
 lemma IsUpperUnipotent.mul {M N : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsUpperUnipotent M) (hN : IsUpperUnipotent N) :
     IsUpperUnipotent (M * N)
-
-lemma IsOrthogonal.transpose {M : Matrix (Fin n) (Fin n) ℝ}
-    (hM : IsOrthogonal M) : IsOrthogonal Mᵀ
 
 lemma IsOrthogonal.det_sq {M : Matrix (Fin n) (Fin n) ℝ}
     (hM : IsOrthogonal M) : (M.det) ^ 2 = 1
@@ -1219,9 +1216,6 @@ lemma IsPositiveDiagonal.matInv_eq_diagInv {D : Matrix (Fin n) (Fin n) ℝ}
 
 lemma IsPositiveDiagonal.matInv {D : Matrix (Fin n) (Fin n) ℝ}
     (hD : IsPositiveDiagonal D) : IsPositiveDiagonal D⁻¹
-
-lemma IsOrthogonal.matInv_eq_transpose {Q : Matrix (Fin n) (Fin n) ℝ}
-    (hQ : IsOrthogonal Q) : Q⁻¹ = Qᵀ
 ```
 
 ---
@@ -1276,7 +1270,9 @@ theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0)
 The proof above is fully formalized in Lean 4 (with Mathlib) in the
 companion file [`Iwasawa.lean`](Iwasawa.lean). It compiles with no
 `sorry`, and the main theorems depend only on Lean's three standard
-foundational axioms (`propext`, `Classical.choice`, `Quot.sound`).
+foundational axioms (`propext`, `Classical.choice`, `Quot.sound`). The
+file ends with `#print axioms` on the four headline results, so `lake
+build` reports that dependency rather than the README only asserting it.
 
 Each section above shows the corresponding Lean inline; the table collects the main declarations for quick reference:
 
