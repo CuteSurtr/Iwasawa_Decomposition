@@ -29,22 +29,22 @@ The exposition is organized into six sections:
 5. The uniqueness proof, by reduction to the key lemma.
 6. A short conclusion summarizing the result.
 
-The diagram below shows how the pieces fit together: the three
-subgroups support both halves of the argument, the key lemma drives
-uniqueness, and existence together with uniqueness give the theorem.
+The diagram below shows how the pieces fit together: the statement (§2)
+sets the goal, the three subgroups support both halves of the argument,
+the key lemma drives uniqueness, and existence together with uniqueness
+establish the theorem in the conclusion (§6).
 
 ```mermaid
-flowchart TD
-    KAN["Three subgroups K, A, N<br/>IsOrthogonal, IsPositiveDiagonal, IsUpperUnipotent"]
+flowchart LR
+    STMT["§2 Statement<br/>goal: a unique factorization g = k a u"]
+    KAN["§1 Three subgroups K, A, N<br/>IsOrthogonal, IsPositiveDiagonal, IsUpperUnipotent"]
     KEY["§3 Key lemma<br/>orthogonal + upper triangular + positive diagonal = identity"]
     EX["§4 Existence<br/>build (k, a, u) by Gram-Schmidt on the columns of g"]
     UNIQ["§5 Uniqueness<br/>two factorizations of g must agree"]
-    THM["§2 and §6 Iwasawa decomposition<br/>unique (k, a, u) with g = k a u"]
-    KAN --> KEY
-    KAN --> EX
-    KEY --> UNIQ
-    EX --> THM
-    UNIQ --> THM
+    CONC["§6 Conclusion<br/>the factorization exists and is unique"]
+    KAN --> EX --> CONC
+    KAN --> KEY --> UNIQ --> CONC
+    STMT -.->|"goal, established in §6"| CONC
 ```
 
 ---
