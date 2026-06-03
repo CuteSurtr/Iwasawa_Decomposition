@@ -482,8 +482,8 @@ Rearranging the recursive formula from Section 4.1,
 
 $$g^{(j)} = \tilde{e}_j + \sum_{k=1}^{j-1} \langle g^{(j)}, e_k \rangle e_k.$$
 
-Using $\tilde{e}_j = \lVert \tilde{e}_j \rVert \cdot e_j$ in the first
-term,
+In the first term, write $\tilde{e}_j$ as its norm times $e_j$ (since $e_j$ is
+the normalization of $\tilde{e}_j$):
 
 $$
 \begin{aligned}
