@@ -1,7 +1,7 @@
 /-
 Iwasawa decomposition of GLₙ(ℝ). Math 157 final project.
 
-Author: Jiho Lee (CuteSurtr)
+Author: (CuteSurtr)
 
 Sole author; all contributions are the author's own.
 -/
