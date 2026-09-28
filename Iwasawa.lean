@@ -988,12 +988,25 @@ theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0)
 /-! ### Axiom audit
 
 The four headline results reduce to Lean's three standard foundational
-axioms only. The `#print axioms` commands below make `lake build` report
-that dependency, so the claim in the README is checked by the build
+axioms only. Each `#print axioms` below is wrapped in `#guard_msgs`, so
+`lake build` fails if that dependency ever changes (for example, if a
+`sorry` creeps in): the claim in the README is checked by the build
 rather than only asserted. -/
+
+/-- info: 'Iwasawa.iwasawaDecomposition' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms iwasawaDecomposition
+
+/-- info: 'Iwasawa.exists_iwasawa' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms exists_iwasawa
+
+/-- info: 'Iwasawa.iwasawa_unique' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms iwasawa_unique
+
+/-- info: 'Iwasawa.orthogonal_upperTriangular_posDiag_eq_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms orthogonal_upperTriangular_posDiag_eq_one
 
 end Iwasawa

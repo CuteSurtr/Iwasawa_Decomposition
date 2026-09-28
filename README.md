@@ -1270,8 +1270,8 @@ The proof above is fully formalized in Lean 4 (with Mathlib) in the
 companion file [`Iwasawa.lean`](Iwasawa.lean). It compiles with no
 `sorry`, and the main theorems depend only on Lean's three standard
 foundational axioms (`propext`, `Classical.choice`, `Quot.sound`). The
-file ends with `#print axioms` on the four headline results, so `lake
-build` reports that dependency rather than the README only asserting it.
+file ends with `#print axioms` on the four headline results, each wrapped
+in `#guard_msgs`, so `lake build` fails if that dependency ever changes.
 
 Each section above shows the corresponding Lean inline; the table collects the main declarations for quick reference:
 
@@ -1294,8 +1294,9 @@ lake exe cache get   # download the prebuilt Mathlib cache
 lake build           # elaborate and check Iwasawa.lean
 ```
 
-A successful `lake build` is a complete machine verification of every
-claim made above.
+A successful `lake build` is a complete machine verification of the main
+results: the `#guard_msgs` checks at the end of the file make it fail if
+any of them depends on `sorry` or a nonstandard axiom.
 
 ### Notes on the formalization
 
