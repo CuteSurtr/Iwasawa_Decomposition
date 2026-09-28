@@ -138,10 +138,13 @@ $`a_2(u_2u_1^{-1}) = a_1`$ and compares entries
 
 ## 6. Putting it together
 
-Sections 4 and 5 give the theorem. Unwinding the construction: $k$ has the
-Gram-Schmidt vectors $`e_i`$ as its columns, $a$ holds the norms
-$`\lVert \tilde{e}_i \rVert`$, and $u$ holds the coefficients that write each
-column $g^{(j)}$ in terms of $`\tilde{e}_1, \dots, \tilde{e}_j`$.
+Sections 4 and 5 give the theorem. Unwinding the construction: $k = Q$ has the
+Gram-Schmidt vectors as its columns, $a$ holds the lengths of the unnormalized
+ones, and $u$ holds the coefficients that build each column of $g$ out of them:
+
+```math
+a = \mathrm{diag}\big(\lVert \tilde{e}_1 \rVert, \dots, \lVert \tilde{e}_n \rVert\big), \qquad g^{(j)} = \sum_{i \le j} u_{ij} \, \tilde{e}_i .
+```
 
 ## Where things are in the Lean file
 
