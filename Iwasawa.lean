@@ -2,8 +2,6 @@
 Iwasawa decomposition of GLₙ(ℝ). Math 157 final project.
 
 Author: (CuteSurtr)
-
-Sole author; all contributions are the author's own.
 -/
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.LinearAlgebra.Matrix.Block
