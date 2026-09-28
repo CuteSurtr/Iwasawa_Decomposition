@@ -1231,9 +1231,9 @@ $$g = k \cdot a \cdot u.$$
 The orthogonal factor $k$ is obtained by applying Gram-Schmidt
 orthonormalization to the columns of $g$ and assembling the result
 into a matrix; the positive diagonal factor $a$ records the norms of
-the Gram-Schmidt vectors; and the upper unipotent factor $u$ records
-the coefficients that express each column of $g$ in terms of the
-preceding orthonormalized columns. Uniqueness follows from the
+the unnormalized Gram-Schmidt vectors $\tilde{e}_i$; and the upper
+unipotent factor $u$ records the coefficients that express each column
+$g^{(j)}$ in terms of $\tilde{e}_1, \dots, \tilde{e}_j$. Uniqueness follows from the
 observation that the only matrix that is simultaneously orthogonal,
 upper triangular, and has strictly positive diagonal is the identity.
 
