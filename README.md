@@ -1,4 +1,4 @@
-# The Iwasawa decomposition of $GL_n(\mathbb{R})$ in Lean
+# The Iwasawa decomposition of $`GL_n(\mathbb{R})`$ in Lean
 
 [![build](https://github.com/CuteSurtr/Iwasawa_Decomposition/actions/workflows/build.yml/badge.svg)](https://github.com/CuteSurtr/Iwasawa_Decomposition/actions/workflows/build.yml)
 
@@ -21,10 +21,10 @@ section numbers below.
 
 ## 1. Setup
 
-Write $\langle x, y \rangle = \sum_j x_j y_j$ for the dot product on
+Write $`\langle x, y \rangle = \sum_j x_j y_j`$ for the dot product on
 $\mathbb{R}^n$ and $g^{(i)}$ for the $i$-th column of $g$. The three groups are
 
-- $K = \{ Q : QQ^T = I \}$, the orthogonal matrices,
+- $`K = \{ Q : QQ^T = I \}`$, the orthogonal matrices,
 - $A$, the diagonal matrices with positive diagonal entries,
 - $N$, the upper triangular matrices with ones on the diagonal.
 
@@ -59,13 +59,13 @@ theorem iwasawaDecomposition (g : Matrix (Fin n) (Fin n) ℝ) (hg : g.det ≠ 0)
 
 ## 3. The key lemma
 
-**Lemma.** If $M$ is orthogonal and upper triangular with $M_{ii} > 0$ for
+**Lemma.** If $M$ is orthogonal and upper triangular with $`M_{ii} > 0`$ for
 all $i$, then $M = I$.
 
 *Proof.* $MM^T = I$ means $M^{-1} = M^T$. The inverse of an upper triangular
 matrix is upper triangular, so $M^T$ is upper triangular too, which means $M$
 is also lower triangular. So $M$ is diagonal, and the $(i, i)$ entry of
-$MM^T = I$ reads $M_{ii}^2 = 1$. Since $M_{ii} > 0$, we get $M_{ii} = 1$.
+$MM^T = I$ reads $`M_{ii}^2 = 1`$. Since $`M_{ii} > 0`$, we get $`M_{ii} = 1`$.
 $\blacksquare$
 
 ## 4. Existence
@@ -74,66 +74,74 @@ Fix $g$ with $\det g \neq 0$.
 
 **4.1** The columns of $g$ are linearly independent, so Gram-Schmidt applies:
 
-$$\tilde{e}_i = g^{(i)} - \sum_{k < i} \langle g^{(i)}, e_k \rangle e_k, \qquad e_i = \frac{\tilde{e}_i}{\lVert \tilde{e}_i \rVert}.$$
+```math
+\tilde{e}_i = g^{(i)} - \sum_{k < i} \langle g^{(i)}, e_k \rangle e_k, \qquad e_i = \frac{\tilde{e}_i}{\lVert \tilde{e}_i \rVert}.
+```
 
-Independence also means no $\tilde{e}_i$ is zero, and $e_1, \dots, e_n$ are
+Independence also means no $`\tilde{e}_i`$ is zero, and $`e_1, \dots, e_n`$ are
 orthonormal.
 
-**4.2** Let $Q$ be the matrix with columns $e_1, \dots, e_n$. Orthonormal
+**4.2** Let $Q$ be the matrix with columns $`e_1, \dots, e_n`$. Orthonormal
 columns give $Q^TQ = I$, and for a square matrix that implies $QQ^T = I$, so
 $Q \in K$.
 
-**4.3** Let $R = Q^Tg$, so $R_{ij} = \langle e_i, g^{(j)} \rangle$.
+**4.3** Let $R = Q^Tg$, so $`R_{ij} = \langle e_i, g^{(j)} \rangle`$.
 Rearranging 4.1,
 
-$$g^{(j)} = \lVert \tilde{e}_j \rVert \, e_j + \sum_{k < j} \langle g^{(j)}, e_k \rangle e_k,$$
+```math
+g^{(j)} = \lVert \tilde{e}_j \rVert \, e_j + \sum_{k < j} \langle g^{(j)}, e_k \rangle e_k,
+```
 
-so $g^{(j)}$ is in the span of $e_1, \dots, e_j$ and $R_{ij} = 0$ for $i > j$.
-For the diagonal, $\tilde{e}_i$ is orthogonal to every $e_k$ with $k < i$, so
+so $g^{(j)}$ is in the span of $`e_1, \dots, e_j`$ and $`R_{ij} = 0`$ for $i > j$.
+For the diagonal, $`\tilde{e}_i`$ is orthogonal to every $`e_k`$ with $k < i$, so
 pairing it with the same identity gives
-$\langle \tilde{e}_i, g^{(i)} \rangle = \lVert \tilde{e}_i \rVert^2$ and
+$`\langle \tilde{e}_i, g^{(i)} \rangle = \lVert \tilde{e}_i \rVert^2`$ and
 
-$$R_{ii} = \frac{\langle \tilde{e}_i, g^{(i)} \rangle}{\lVert \tilde{e}_i \rVert} = \lVert \tilde{e}_i \rVert > 0.$$
+```math
+R_{ii} = \frac{\langle \tilde{e}_i, g^{(i)} \rangle}{\lVert \tilde{e}_i \rVert} = \lVert \tilde{e}_i \rVert > 0.
+```
 
 **4.4** Let $a$ be the diagonal matrix with the same diagonal as $R$ (it's in
 $A$ by 4.3) and put $u = a^{-1}R$. Then $u$ is upper triangular with
-$u_{ii} = R_{ii}^{-1} R_{ii} = 1$, so $u \in N$ and $R = au$.
+$`u_{ii} = R_{ii}^{-1} R_{ii} = 1`$, so $u \in N$ and $R = au$.
 
 **4.5** Finally $g = QQ^Tg = QR = Qau$, so $k = Q$ works.
 
 ## 5. Uniqueness
 
-Suppose $g = k_1a_1u_1 = k_2a_2u_2$.
+Suppose $`g = k_1a_1u_1 = k_2a_2u_2`$.
 
-**5.1** Let $M = k_2^Tk_1$.
+**5.1** Let $`M = k_2^Tk_1`$.
 
-**5.2** $MM^T = k_2^T(k_1k_1^T)k_2 = k_2^Tk_2 = I$, so $M$ is orthogonal.
+**5.2** $`MM^T = k_2^T(k_1k_1^T)k_2 = k_2^Tk_2 = I`$, so $M$ is orthogonal.
 
-**5.3** Multiplying $k_1a_1u_1 = k_2a_2u_2$ on the left by $k_2^T$ and on the
-right by $(a_1u_1)^{-1} = u_1^{-1}a_1^{-1}$ gives
+**5.3** Multiplying $`k_1a_1u_1 = k_2a_2u_2`$ on the left by $`k_2^T`$ and on the
+right by $`(a_1u_1)^{-1} = u_1^{-1}a_1^{-1}`$ gives
 
-$$M = a_2u_2u_1^{-1}a_1^{-1}.$$
+```math
+M = a_2u_2u_1^{-1}a_1^{-1}.
+```
 
 Inverses of upper unipotent matrices are upper unipotent and inverses of
 positive diagonal matrices are positive diagonal, so all four factors are upper
 triangular and so is $M$. Its diagonal is the product of their diagonals:
-$M_{ii} = (a_2)_{ii} / (a_1)_{ii} > 0$.
+$`M_{ii} = (a_2)_{ii} / (a_1)_{ii} > 0`$.
 
-**5.4** By the key lemma $M = I$, and then $k_1 = k_2k_2^Tk_1 = k_2$.
+**5.4** By the key lemma $M = I$, and then $`k_1 = k_2k_2^Tk_1 = k_2`$.
 
-**5.5** Cancelling $k$ leaves $a_1u_1 = a_2u_2$, i.e.
-$a_2^{-1}a_1 = u_2u_1^{-1}$. The left side is diagonal and the right side is
-upper unipotent, so both are $I$, which gives $a_1 = a_2$ and $u_1 = u_2$. The
+**5.5** Cancelling $k$ leaves $`a_1u_1 = a_2u_2`$, i.e.
+$`a_2^{-1}a_1 = u_2u_1^{-1}`$. The left side is diagonal and the right side is
+upper unipotent, so both are $I$, which gives $`a_1 = a_2`$ and $`u_1 = u_2`$. The
 Lean proof gets there a little differently: it writes
-$a_2(u_2u_1^{-1}) = a_1$ and compares entries
+$`a_2(u_2u_1^{-1}) = a_1`$ and compares entries
 (`posDiag_mul_upperUnip_eq_diag_iff`).
 
 ## 6. Putting it together
 
 Sections 4 and 5 give the theorem. Unwinding the construction: $k$ has the
-Gram-Schmidt vectors $e_i$ as its columns, $a$ holds the norms
-$\lVert \tilde{e}_i \rVert$, and $u$ holds the coefficients that write each
-column $g^{(j)}$ in terms of $\tilde{e}_1, \dots, \tilde{e}_j$.
+Gram-Schmidt vectors $`e_i`$ as its columns, $a$ holds the norms
+$`\lVert \tilde{e}_i \rVert`$, and $u$ holds the coefficients that write each
+column $g^{(j)}$ in terms of $`\tilde{e}_1, \dots, \tilde{e}_j`$.
 
 ## Where things are in the Lean file
 
@@ -175,7 +183,7 @@ Some things that were one line on paper and not in Lean:
   reciprocals) and only match it up with `M⁻¹` at the end, in
   `IsPositiveDiagonal.matInv_eq_diagInv`.
 - `rMat_diag` doesn't assume $\det g \neq 0$, so it has to deal with
-  $\tilde{e}_i = 0$, a case that never comes up once the columns are
+  $`\tilde{e}_i = 0`$, a case that never comes up once the columns are
   independent.
 - Upper triangular is `Matrix.BlockTriangular M id`. Products and inverses
   then come straight from Mathlib (`Matrix.BlockTriangular.mul`,
