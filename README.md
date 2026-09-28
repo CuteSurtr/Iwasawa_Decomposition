@@ -1320,7 +1320,7 @@ independence of the columns has to be transported across the
 `WithLp.linearEquiv` (in `gCol_linearIndependent`). This step is
 invisible on paper but unavoidable in Lean.
 
-**A computable diagonal inverse.** Mathlib's `M⁻¹` is defined through the
+**An explicit diagonal inverse.** Mathlib's `M⁻¹` is defined through the
 adjugate and is awkward to compute with. Rather than fight it, the file
 defines `diagInv M`, the diagonal matrix of reciprocals, proves it is a
 genuine two sided inverse for positive diagonal matrices, and only later
