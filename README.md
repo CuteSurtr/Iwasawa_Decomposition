@@ -102,7 +102,7 @@ def IsOrthogonal (M : Matrix (Fin n) (Fin n) ℝ) : Prop :=
   M * Mᵀ = 1
 ```
 
-Each subgroup contains the identity and is closed under products; for `K` we also need the determinant facts (statements):
+Each subgroup contains the identity, and `A` and `N` are closed under products (the proof never needs this for `K`); for `K` we also need the determinant facts (statements):
 
 ```lean
 lemma IsUpperTriangular.one : IsUpperTriangular (1 : Matrix (Fin n) (Fin n) ℝ)
@@ -984,7 +984,7 @@ $$a_1 = a_2, \qquad u_1 = u_2.$$
 
 This completes the uniqueness proof. $\blacksquare$
 
-**In Lean.** A small toolkit of determinant and inverse facts (statements), then the two substantive proofs: the shape comparison lemma and uniqueness itself, in full.
+**In Lean.** The two substantive proofs, in full: the shape comparison lemma and uniqueness itself. The last step of §5.5 goes through the shape comparison lemma: the proof rewrites $a_1 u_1 = a_2 u_2$ as $a_2 (u_2 u_1^{-1}) = a_1$ and compares entries directly. A small toolkit of determinant and inverse facts (statements) follows.
 
 ```lean
 lemma posDiag_mul_upperUnip_eq_diag_iff
@@ -1192,7 +1192,7 @@ theorem iwasawa_unique {g : Matrix (Fin n) (Fin n) ℝ}
   exact ⟨hk_eq, ha_eq.symm, hu_eq⟩
 ```
 
-Determinant and inverse toolkit, plus the fact that a matrix that is both diagonal and upper unipotent equals the identity (statements):
+Determinant and inverse toolkit (statements):
 
 ```lean
 lemma IsUpperUnipotent.det {U : Matrix (Fin n) (Fin n) ℝ} (hU : IsUpperUnipotent U) :
@@ -1309,7 +1309,8 @@ $A$, $N$ is expressed by plain predicates (`IsOrthogonal`,
 `IsPositiveDiagonal`, `IsUpperUnipotent`) rather than Mathlib `Subgroup`
 objects. This keeps the statements elementary and avoids carrying group
 structure the proof never uses; the price is that the closure facts
-(identity, products, inverses) are proved by hand.
+(the identity for all three; products and inverses for $A$ and $N$) are
+proved by hand.
 
 **Columns live in `EuclideanSpace`.** Gram-Schmidt in Mathlib needs an
 inner product space, and the bare type `Fin n → ℝ` does not carry the
@@ -1343,7 +1344,8 @@ contradictions in a few proofs.
 **Left inverse equals right inverse.** For square matrices a one sided
 inverse is automatically two sided (`mul_eq_one_comm`). This small fact
 is used repeatedly: to turn `Qᵀ Q = I` into `Q Qᵀ = I`, to obtain
-`M⁻¹ = Mᵀ` in the key lemma, and in `IsOrthogonal.transpose`.
+`M⁻¹ = Mᵀ` in the key lemma, and in `iwasawa_unique` to get `k₂ᵀ k₂ = I`
+from `k₂ k₂ᵀ = I`.
 
 **Steps the paper asserts and Lean has to prove.** Several one line
 claims in the informal argument expand into real work. "Since
